@@ -1,0 +1,155 @@
+.table {
+  width: 100%;
+}
+
+.table__bulkbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #eff6ff;
+}
+
+.table__bulkinfo {
+  color: #1e40af;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.table__bulkactions {
+  display: flex;
+  gap: 10px;
+}
+
+.table__secondary-btn,
+.table__danger-btn,
+.table__icon-delete {
+  border: 0;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+}
+
+.table__secondary-btn {
+  border-radius: 10px;
+  background: #e5e7eb;
+  color: #111827;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.table__secondary-btn:hover {
+  background: #d1d5db;
+}
+
+.table__danger-btn {
+  border-radius: 10px;
+  background: #dc2626;
+  color: #ffffff;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.table__danger-btn:hover {
+  background: #b91c1c;
+}
+
+.table__header,
+.table__row {
+  display: grid;
+  grid-template-columns: 60px minmax(180px, 2fr) minmax(180px, 2fr) 120px;
+  align-items: center;
+}
+
+.table__header {
+  padding: 18px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table__row-wrapper {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.table__row {
+  padding: 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.table__row:hover {
+  background: #f9fafb;
+}
+
+.table__col {
+  display: flex;
+  align-items: center;
+}
+
+.table__col--id {
+  color: #6b7280;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.table__col--actions {
+  justify-content: flex-end;
+}
+
+.table__icon-delete {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.table__icon-delete:hover {
+  background: #fecaca;
+}
+
+.table__expanded {
+  background: #f8fafc;
+  padding: 16px 20px 20px;
+}
+
+.table__details {
+  display: grid;
+  gap: 10px;
+}
+
+.table__detail-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px dashed #dbeafe;
+}
+
+.table__detail-key {
+  color: #374151;
+  font-weight: 700;
+}
+
+.table__detail-value {
+  color: #111827;
+  word-break: break-word;
+}
+
+.table__empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+}

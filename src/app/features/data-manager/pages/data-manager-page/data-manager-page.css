@@ -1,0 +1,44 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f7fb;
+}
+
+.page__content {
+  flex: 1;
+  padding: 24px 32px;
+}
+
+.page__header {
+  margin-bottom: 20px;
+}
+
+.page__title {
+  margin: 0;
+  color: #111827;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.page__subtitle {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.page__card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+}
+
+.page__loading {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  color: #4b5563;
+  font-size: 15px;
+  font-weight: 600;
+}

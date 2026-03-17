@@ -1,0 +1,80 @@
+<div class="table">
+  @if (selectionMode) {
+    <div class="table__bulkbar">
+      <div class="table__bulkinfo">
+        {{ selectedIds.size }} item(s) selected
+      </div>
+
+      <div class="table__bulkactions">
+        <button type="button" class="table__secondary-btn" (click)="clearSelection()">
+          Cancel
+        </button>
+
+        <button type="button" class="table__danger-btn" (click)="onBulkDelete()">
+          Delete selected
+        </button>
+      </div>
+    </div>
+  }
+
+  <div class="table__header">
+    <div class="table__col table__col--check"></div>
+    <div class="table__col table__col--name">Name</div>
+    <div class="table__col table__col--id">ID</div>
+    <div class="table__col table__col--actions">Actions</div>
+  </div>
+
+  @if (items().length > 0) {
+    @for (item of items(); track item.id) {
+      <div class="table__row-wrapper">
+        <div class="table__row" (click)="toggleExpand(item.id)">
+          <div class="table__col table__col--check" (click)="$event.stopPropagation()">
+            <input
+              type="checkbox"
+              [checked]="isSelected(item.id)"
+              (change)="onCheckboxChange(item.id, $event)"
+            />
+          </div>
+
+          <div class="table__col table__col--name">
+            {{ item[displayField()] }}
+          </div>
+
+          <div class="table__col table__col--id">
+            {{ item.id }}
+          </div>
+
+          <div class="table__col table__col--actions" (click)="$event.stopPropagation()">
+            @if (!selectionMode) {
+              <button
+                type="button"
+                class="table__icon-delete"
+                (click)="onDeleteSingle(item.id, $event)"
+                aria-label="Delete item"
+              >
+                ✕
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (expandedRowId === item.id) {
+          <div class="table__expanded">
+            <div class="table__details">
+              @for (entry of getObjectEntries(item); track entry.key) {
+                <div class="table__detail-row">
+                  <span class="table__detail-key">{{ entry.key }}</span>
+                  <span class="table__detail-value">{{ entry.value }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  } @else {
+    <div class="table__empty">
+      No items found for this type.
+    </div>
+  }
+</div>

@@ -1,0 +1,44 @@
+@if (total() > 0) {
+  <div class="pagination">
+    <div class="pagination__info">
+      <span class="pagination__range">
+        Showing <strong>{{ startItem }}</strong> - <strong>{{ endItem }}</strong>
+        of <strong>{{ total() }}</strong>
+      </span>
+
+      <span class="pagination__page">
+        Page <strong>{{ page() }}</strong> of <strong>{{ totalPages() }}</strong>
+      </span>
+    </div>
+
+    <div class="pagination__controls">
+      <label class="pagination__limit">
+        <span>Items per page</span>
+
+        <select [value]="limit()" (change)="onLimitChange($event)">
+          @for (option of pageSizeOptions; track option) {
+            <option [value]="option">{{ option }}</option>
+          }
+        </select>
+      </label>
+
+      <button
+        type="button"
+        class="pagination__button"
+        [disabled]="!canGoPrevious"
+        (click)="onPrevious()"
+      >
+        Previous
+      </button>
+
+      <button
+        type="button"
+        class="pagination__button"
+        [disabled]="!canGoNext"
+        (click)="onNext()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+}
