@@ -10,13 +10,6 @@
       @if (loading()) {
         <div class="page__loading">Loading...</div>
       } @else {
-        <app-data-table
-          [items]="items()"
-          [displayField]="currentDisplayField()"
-          (deleteItem)="onDeleteItem($event)"
-          (deleteMany)="onDeleteMany($event)"
-        />
-
         <app-pagination
           [page]="page()"
           [limit]="limit()"
@@ -24,6 +17,16 @@
           [totalPages]="totalPages()"
           (pageChange)="onPageChange($event)"
           (limitChange)="onLimitChange($event)"
+        />
+
+        <app-data-table
+          [items]="items()"
+          [previewColumns]="currentPreviewColumns()"
+          [selectedIds]="selectedIds()"
+          (deleteItem)="onDeleteItem($event)"
+          (deleteMany)="onDeleteMany($event)"
+          (toggleEnabled)="onToggleEnabled($event)"
+          (selectedIdsChange)="onSelectedIdsChange($event)"
         />
       }
     </div>

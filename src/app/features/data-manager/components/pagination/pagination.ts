@@ -18,6 +18,10 @@ export class Pagination {
 
   readonly pageSizeOptions = [10, 25, 50];
 
+  get selectedLimitValue(): string {
+    return String(this.limit());
+  }
+
   get canGoPrevious(): boolean {
     return this.page() > 1;
   }

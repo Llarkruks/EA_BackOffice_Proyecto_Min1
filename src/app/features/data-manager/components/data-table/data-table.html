@@ -2,7 +2,7 @@
   @if (selectionMode) {
     <div class="table__bulkbar">
       <div class="table__bulkinfo">
-        {{ selectedIds.size }} item(s) selected
+        {{ selectedCount }} item(s) selected
       </div>
 
       <div class="table__bulkactions">
@@ -19,46 +19,49 @@
 
   <div class="table__header">
     <div class="table__col table__col--check"></div>
-    <div class="table__col table__col--name">Name</div>
-    <div class="table__col table__col--id">ID</div>
-    <div class="table__col table__col--actions">Actions</div>
+    @for (slot of previewSlots; track slot) {
+      <div class="table__col table__col--header-text">{{ getPreviewHeader(slot) }}</div>
+    }
+    <div class="table__col table__col--actions"></div>
   </div>
 
   @if (items().length > 0) {
-    @for (item of items(); track item.id) {
+    @for (item of items(); track item.id + '-' + $index; let rowIndex = $index) {
       <div class="table__row-wrapper">
-        <div class="table__row" (click)="toggleExpand(item.id)">
+        <div
+          class="table__row"
+          [class.table__row--disabled]="isRowDisabled(item)"
+          (click)="toggleExpand(item.id, rowIndex)"
+        >
           <div class="table__col table__col--check" (click)="$event.stopPropagation()">
-            <input
-              type="checkbox"
-              [checked]="isSelected(item.id)"
-              (change)="onCheckboxChange(item.id, $event)"
-            />
+            <div class="table__row-checkbox" [class.table__row-checkbox--visible]="isSelected(item.id)">
+              <input
+                type="checkbox"
+                [checked]="isSelected(item.id)"
+                (change)="onCheckboxChange(item.id, $event)"
+              />
+            </div>
           </div>
 
-          <div class="table__col table__col--name">
-            {{ item[displayField()] }}
-          </div>
-
-          <div class="table__col table__col--id">
-            {{ item.id }}
-          </div>
+          @for (slot of previewSlots; track slot) {
+            <div class="table__col table__col--cell-value">
+              <span class="table__cell-text">{{ getPreviewCellText(item, slot) }}</span>
+            </div>
+          }
 
           <div class="table__col table__col--actions" (click)="$event.stopPropagation()">
             @if (!selectionMode) {
-              <button
-                type="button"
-                class="table__icon-delete"
-                (click)="onDeleteSingle(item.id, $event)"
-                aria-label="Delete item"
-              >
-                ✕
-              </button>
+              <app-item-action-buttons
+                [item]="item"
+                [inSelectionMode]="selectionMode"
+                (deleteClick)="onItemDelete($event)"
+                (toggleEnabledClick)="onItemToggleEnabled($event)"
+              />
             }
           </div>
         </div>
 
-        @if (expandedRowId === item.id) {
+        @if (expandedRowKey === getRowKey(item.id, rowIndex)) {
           <div class="table__expanded">
             <div class="table__details">
               @for (entry of getObjectEntries(item); track entry.key) {

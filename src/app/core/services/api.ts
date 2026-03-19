@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:1337/';
+  private readonly baseUrl = 'http://localhost:1337';
 
   get<T>(endpoint: string, params?: HttpParams): Observable<T> {
     return this.http.get<T>(`${this.baseUrl}${endpoint}`, { params });
@@ -15,6 +15,10 @@ export class ApiService {
 
   post<T>(endpoint: string, body: unknown): Observable<T> {
     return this.http.post<T>(`${this.baseUrl}${endpoint}`, body);
+  }
+
+  put<T>(endpoint: string, body: unknown): Observable<T> {
+    return this.http.put<T>(`${this.baseUrl}${endpoint}`, body);
   }
 
   delete<T>(endpoint: string): Observable<T> {
