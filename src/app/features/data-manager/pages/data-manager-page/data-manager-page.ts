@@ -33,13 +33,16 @@ export class DataManagerPage implements OnInit {
 
   selectedType = signal<ItemType>('users');
   items = signal<BaseItem[]>([]);
+  allItems = signal<BaseItem[]>([]);
   selectedIds = signal<string[]>([]);
   loading = signal(false);
+  isGlobalSearching = signal(false);
 
   page = signal(1);
   limit = signal(10);
   total = signal(0);
   totalPages = signal(0);
+  searchTerm = signal('');
 
   readonly currentTypeLabel = computed(() => {
     return this.typeOptions.find(option => option.value === this.selectedType())?.label ?? this.selectedType();
@@ -53,6 +56,24 @@ export class DataManagerPage implements OnInit {
     return this.currentTableConfig().previewColumns;
   });
 
+  readonly showSearch = computed(() => {
+    const type = this.selectedType();
+    return type === 'users' || type === 'routes';
+  });
+
+  readonly searchPlaceholder = computed(() => {
+    const type = this.selectedType();
+
+    if (type === 'users') return 'Search users by name...';
+    if (type === 'routes') return 'Search routes by city...';
+
+    return 'Search...';
+  });
+
+  readonly showPagination = computed(() => !this.isGlobalSearching());
+
+
+
   ngOnInit(): void {
     this.loadItems();
   }
@@ -60,11 +81,16 @@ export class DataManagerPage implements OnInit {
   onTypeChange(type: ItemType): void {
     this.selectedType.set(type);
     this.selectedIds.set([]);
+    this.searchTerm.set('');
     this.page.set(1);
     this.loadItems();
   }
 
   onPageChange(page: number): void {
+    if (this.isGlobalSearching()) {
+      return;
+    }
+
     this.page.set(page);
     this.loadItems();
   }
@@ -72,6 +98,114 @@ export class DataManagerPage implements OnInit {
   onLimitChange(limit: number): void {
     this.limit.set(limit);
     this.page.set(1);
+
+    if (this.isGlobalSearching()) {
+    if (this.selectedType() === 'users') {
+      this.searchUsersAcrossAllPages();
+      return;
+    }
+
+    if (this.selectedType() === 'routes') {
+      this.searchRoutesAcrossAllPages();
+      return;
+    }
+  }
+    
+    this.loadItems();
+  }
+
+  onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchTerm.set(value);
+
+    if (this.selectedType() === 'users') {
+      this.searchUsersAcrossAllPages();
+      return;
+    }
+
+    if (this.selectedType() === 'routes') {
+      this.searchRoutesAcrossAllPages();
+      return;
+    }
+
+    this.applyLocalFilter();
+  }
+
+  private searchUsersAcrossAllPages(): void {
+    const term = this.searchTerm().trim().toLowerCase();
+
+    if (!term) {
+      this.isGlobalSearching.set(false);
+      this.loadItems();
+      return;
+    }
+
+    this.loading.set(true);
+    this.isGlobalSearching.set(true);
+
+    this.dataService.getAllItems('users', 50).subscribe({
+      next: (allUsers) => {
+        const normalizedUsers = this.normalizeItems(allUsers as Record<string, unknown>[]);
+
+        const filteredUsers = normalizedUsers.filter((item: BaseItem) => {
+          const name = this.valueToSearchText(item['name']);
+          return name.includes(term);
+        });
+
+        this.allItems.set(normalizedUsers);
+        this.items.set(filteredUsers);
+        this.total.set(filteredUsers.length);
+        this.totalPages.set(1);
+        this.page.set(1);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        console.error('Global user search error:', error);
+        this.loading.set(false);
+        this.isGlobalSearching.set(false);
+      }
+    });
+  }
+
+  private searchRoutesAcrossAllPages(): void {
+    const term = this.searchTerm().trim().toLowerCase();
+
+    if (!term) {
+      this.isGlobalSearching.set(false);
+      this.loadItems();
+      return;
+    }
+
+    this.loading.set(true);
+    this.isGlobalSearching.set(true);
+
+    this.dataService.getAllItems('routes', 50).subscribe({
+      next: (allRoutes) => {
+        const normalizedRoutes = this.normalizeItems(allRoutes as Record<string, unknown>[]);
+
+        const filteredRoutes = normalizedRoutes.filter((item: BaseItem) => {
+          const city = this.valueToSearchText(item['city']);
+          return city.includes(term);
+        });
+
+        this.allItems.set(normalizedRoutes);
+        this.items.set(filteredRoutes);
+        this.total.set(filteredRoutes.length);
+        this.totalPages.set(1);
+        this.page.set(1);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        console.error('Global route search error:', error);
+        this.loading.set(false);
+        this.isGlobalSearching.set(false);
+      }
+    });
+  }
+
+  clearSearch(): void {
+    this.searchTerm.set('');
+    this.isGlobalSearching.set(false);
     this.loadItems();
   }
 
@@ -116,7 +250,7 @@ export class DataManagerPage implements OnInit {
     this.dataService.getItems(
       this.selectedType(),
       requestedPage,
-      requestedLimit
+      requestedLimit,
     ).subscribe({
       next: (response) => {
         const normalizedResponse = response as PaginatedResponse<BaseItem> & Record<string, unknown>;
@@ -181,6 +315,9 @@ export class DataManagerPage implements OnInit {
             : (hasMorePagesByHeuristic ? requestedPage + 1 : requestedPage)
         ) ?? 1;
 
+        this.allItems.set(responseItems);
+        this.applyLocalFilter();
+
         this.items.set(responseItems);
         this.page.set(Math.max(1, requestedPage));
         this.limit.set(Math.max(1, requestedLimit));
@@ -193,6 +330,40 @@ export class DataManagerPage implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  private applyLocalFilter(): void {
+    const term = this.searchTerm().trim().toLowerCase();
+    const type = this.selectedType();
+    const sourceItems = this.allItems();
+
+    if (!term || !this.showSearch()) {
+      this.items.set(sourceItems);
+      return;
+    }
+
+    const filteredItems = sourceItems.filter((item) => {
+      if (type === 'users') {
+        const name = this.valueToSearchText(item['name']);
+        return name.includes(term);
+      }
+
+      if (type === 'routes') {
+        const city = this.valueToSearchText(item['city']);
+        return city.includes(term);
+      }
+
+      return true;
+    });
+
+    this.items.set(filteredItems);
+  }
+
+  private valueToSearchText(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value.toLowerCase();
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value).toLowerCase();
+    return '';
   }
 
   private normalizeItems(values: Record<string, unknown>[]): BaseItem[] {

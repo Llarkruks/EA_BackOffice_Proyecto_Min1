@@ -7,6 +7,30 @@
 
   <section class="page__content">
     <div class="page__card">
+      @if (showSearch()) {
+        <div class="page__toolbar">
+          <div class="searchbar">
+            <input
+              class="searchbar__input"
+              type="text"
+              [placeholder]="searchPlaceholder()"
+              [value]="searchTerm()"
+              (input)="onSearchInput($event)"
+            />
+
+            @if (searchTerm().trim()) {
+              <button
+                class="searchbar__button"
+                type="button"
+                (click)="clearSearch()"
+              >
+                Clear
+              </button>
+            }
+          </div>
+        </div>
+      }
+
       @if (loading()) {
         <div class="page__loading">Loading...</div>
       } @else {
