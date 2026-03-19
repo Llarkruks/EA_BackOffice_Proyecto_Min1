@@ -33,6 +33,7 @@ export class DataManagerPage implements OnInit {
 
   selectedType = signal<ItemType>('users');
   items = signal<BaseItem[]>([]);
+  selectedIds = signal<string[]>([]);
   loading = signal(false);
 
   page = signal(1);
@@ -58,6 +59,7 @@ export class DataManagerPage implements OnInit {
 
   onTypeChange(type: ItemType): void {
     this.selectedType.set(type);
+    this.selectedIds.set([]);
     this.page.set(1);
     this.loadItems();
   }
@@ -78,7 +80,10 @@ export class DataManagerPage implements OnInit {
     if (!confirmed) return;
 
     this.dataService.deleteItem(this.selectedType(), id).subscribe({
-      next: () => this.loadItems(),
+      next: () => {
+        this.selectedIds.update((current) => current.filter((selectedId) => selectedId !== id));
+        this.loadItems();
+      },
       error: (error) => console.error('Delete item error:', error)
     });
   }
@@ -90,9 +95,16 @@ export class DataManagerPage implements OnInit {
     if (!confirmed) return;
 
     this.dataService.deleteMany(this.selectedType(), ids).subscribe({
-      next: () => this.loadItems(),
+      next: () => {
+        this.selectedIds.update((current) => current.filter((selectedId) => !ids.includes(selectedId)));
+        this.loadItems();
+      },
       error: (error) => console.error('Bulk delete error:', error)
     });
+  }
+
+  onSelectedIdsChange(ids: string[]): void {
+    this.selectedIds.set(ids);
   }
 
   private loadItems(): void {

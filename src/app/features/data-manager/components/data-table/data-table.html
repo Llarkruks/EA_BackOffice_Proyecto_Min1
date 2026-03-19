@@ -2,7 +2,7 @@
   @if (selectionMode) {
     <div class="table__bulkbar">
       <div class="table__bulkinfo">
-        {{ selectedIds.size }} item(s) selected
+        {{ selectedCount }} item(s) selected
       </div>
 
       <div class="table__bulkactions">
@@ -34,7 +34,7 @@
           (click)="toggleExpand(item.id, rowIndex)"
         >
           <div class="table__col table__col--check" (click)="$event.stopPropagation()">
-            <div class="table__row-checkbox">
+            <div class="table__row-checkbox" [class.table__row-checkbox--visible]="isSelected(item.id)">
               <input
                 type="checkbox"
                 [checked]="isSelected(item.id)"

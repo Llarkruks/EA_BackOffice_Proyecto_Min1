@@ -132,6 +132,10 @@
   transition: opacity 0.2s ease;
 }
 
+.table__row-checkbox--visible {
+  opacity: 1;
+}
+
 .table__cell-text {
   width: 100%;
   text-align: center;

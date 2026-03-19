@@ -15,18 +15,23 @@ export class DataTable {
   readonly items = input<BaseItem[]>([]);
   readonly previewColumns = input<ItemPreviewColumn[]>([]);
   readonly previewTextMaxLength = input<number>(30);
+  readonly selectedIds = input<string[]>([]);
 
   readonly deleteItem = output<string>();
   readonly deleteMany = output<string[]>();
   readonly toggleEnabled = output<string>();
+  readonly selectedIdsChange = output<string[]>();
 
   expandedRowKey: string | null = null;
-  selectedIds = new Set<string>();
   readonly previewSlots = [0, 1, 2, 3];
   private readonly maxPreviewColumns = 4;
 
   get selectionMode(): boolean {
-    return this.selectedIds.size > 0;
+    return this.selectedIds().length > 0;
+  }
+
+  get selectedCount(): number {
+    return this.selectedIds().length;
   }
 
   getPreviewHeader(slotIndex: number): string {
@@ -43,17 +48,20 @@ export class DataTable {
   }
 
   isSelected(itemId: string): boolean {
-    return this.selectedIds.has(itemId);
+    return this.getSelectedIdSet().has(itemId);
   }
 
   onCheckboxChange(itemId: string, event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
+    const next = new Set(this.getSelectedIdSet());
 
     if (checked) {
-      this.selectedIds.add(itemId);
+      next.add(itemId);
     } else {
-      this.selectedIds.delete(itemId);
+      next.delete(itemId);
     }
+
+    this.selectedIdsChange.emit(Array.from(next));
   }
 
   onItemDelete(itemId: string): void {
@@ -94,12 +102,12 @@ export class DataTable {
   }
 
   onBulkDelete(): void {
-    this.deleteMany.emit(Array.from(this.selectedIds));
+    this.deleteMany.emit(this.selectedIds());
     this.clearSelection();
   }
 
   clearSelection(): void {
-    this.selectedIds.clear();
+    this.selectedIdsChange.emit([]);
   }
 
   getObjectEntries(item: BaseItem): Array<{ key: string; value: unknown }> {
@@ -161,6 +169,10 @@ export class DataTable {
 
   private getActivePreviewColumns(): ItemPreviewColumn[] {
     return this.previewColumns().slice(0, this.maxPreviewColumns);
+  }
+
+  private getSelectedIdSet(): Set<string> {
+    return new Set(this.selectedIds());
   }
 
   private findNestedObjectId(value: unknown): string | null {

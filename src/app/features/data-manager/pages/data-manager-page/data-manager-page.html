@@ -22,9 +22,11 @@
         <app-data-table
           [items]="items()"
           [previewColumns]="currentPreviewColumns()"
+          [selectedIds]="selectedIds()"
           (deleteItem)="onDeleteItem($event)"
           (deleteMany)="onDeleteMany($event)"
           (toggleEnabled)="onToggleEnabled($event)"
+          (selectedIdsChange)="onSelectedIdsChange($event)"
         />
       }
     </div>
