@@ -8,6 +8,7 @@ import { Pagination } from '../../components/pagination/pagination';
 import { DataService } from '../../../../core/services/data';
 import { BaseItem } from '../../../../core/models/base-item';
 import { ItemType, ItemTypeOption } from '../../../../core/models/item-type';
+import { PaginatedResponse } from '../../../../core/models/paginated-response';
 
 @Component({
   selector: 'app-data-manager-page',
@@ -98,17 +99,67 @@ export class DataManagerPage implements OnInit {
   private loadItems(): void {
     this.loading.set(true);
 
+    const requestedPage = this.page();
+    const requestedLimit = this.limit();
+
     this.dataService.getItems(
       this.selectedType(),
-      this.page(),
-      this.limit()
+      requestedPage,
+      requestedLimit
     ).subscribe({
       next: (response) => {
-        this.items.set(response.data);
-        this.page.set(response.page);
-        this.limit.set(response.limit);
-        this.total.set(response.total);
-        this.totalPages.set(response.totalPages);
+        const normalizedResponse = response as PaginatedResponse<BaseItem> & Record<string, unknown>;
+
+        const responseItems = this.getArrayValue<BaseItem>(
+          [
+            normalizedResponse.data,
+            normalizedResponse['items'],
+            normalizedResponse['results'],
+            normalizedResponse['docs']
+          ],
+          []
+        );
+
+        const responseTotal = this.getNumberValue(
+          [
+            normalizedResponse.total,
+            normalizedResponse['totalItems'],
+            normalizedResponse['total_count'],
+            normalizedResponse['count'],
+            normalizedResponse['totalDocs']
+          ],
+          undefined
+        );
+
+        const responseTotalPages = this.getNumberValue(
+          [
+            normalizedResponse.totalPages,
+            normalizedResponse['total_pages'],
+            normalizedResponse['pages'],
+            normalizedResponse['pageCount']
+          ],
+          undefined
+        );
+
+        const hasKnownTotal = typeof responseTotal === 'number' && responseTotal > 0;
+        const hasMorePagesByHeuristic = responseItems.length === requestedLimit;
+
+        const normalizedTotal = hasKnownTotal
+          ? responseTotal
+          : ((requestedPage - 1) * requestedLimit) + responseItems.length + (hasMorePagesByHeuristic ? 1 : 0);
+
+        const normalizedTotalPages = this.getNumberValue(
+          [responseTotalPages],
+          hasKnownTotal
+            ? Math.max(1, Math.ceil(normalizedTotal / Math.max(requestedLimit, 1)))
+            : (hasMorePagesByHeuristic ? requestedPage + 1 : requestedPage)
+        ) ?? 1;
+
+        this.items.set(responseItems);
+        this.page.set(Math.max(1, requestedPage));
+        this.limit.set(Math.max(1, requestedLimit));
+        this.total.set(Math.max(0, normalizedTotal));
+        this.totalPages.set(Math.max(1, normalizedTotalPages));
         this.loading.set(false);
       },
       error: (error) => {
@@ -116,5 +167,27 @@ export class DataManagerPage implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  private getNumberValue(values: unknown[], fallback: number | undefined): number | undefined {
+    for (const value of values) {
+      const numberValue = typeof value === 'number' ? value : Number(value);
+
+      if (Number.isFinite(numberValue) && numberValue >= 0) {
+        return numberValue;
+      }
+    }
+
+    return fallback;
+  }
+
+  private getArrayValue<T>(values: unknown[], fallback: T[]): T[] {
+    for (const value of values) {
+      if (Array.isArray(value)) {
+        return value as T[];
+      }
+    }
+
+    return fallback;
   }
 }
