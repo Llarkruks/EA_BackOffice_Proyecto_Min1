@@ -8,13 +8,15 @@ import { CommonModule } from '@angular/common';
   styleUrl: './pagination.css'
 })
 export class Pagination {
-  readonly page = input<number>(1);
-  readonly limit = input<number>(10);
-  readonly total = input<number>(0);
-  readonly totalPages = input<number>(0);
+  readonly page = input(1);
+  readonly limit = input(10);
+  readonly total = input(0);
+  readonly totalPages = input(0);
+  readonly canAddUser = input(false);
 
   readonly pageChange = output<number>();
   readonly limitChange = output<number>();
+  readonly addUserClick = output<void>();
 
   readonly pageSizeOptions = [10, 25, 50];
 
@@ -45,6 +47,10 @@ export class Pagination {
   onLimitChange(event: Event): void {
     const value = Number((event.target as HTMLSelectElement).value);
     this.limitChange.emit(value);
+  }
+
+  onAddUser(): void {
+    this.addUserClick.emit();
   }
 
   get startItem(): number {

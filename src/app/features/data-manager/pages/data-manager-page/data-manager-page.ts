@@ -1,24 +1,27 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
+import { FormsModule } from '@angular/forms';
 import { Sidebar } from '../../components/sidebar/sidebar';
 import { DataTable } from '../../components/data-table/data-table';
 import { Pagination } from '../../components/pagination/pagination';
-
 import { DataService } from '../../../../core/services/data';
 import { BaseItem } from '../../../../core/models/base-item';
 import { ItemType, ItemTypeOption } from '../../../../core/models/item-type';
-import { ITEM_TABLE_CONFIG, ItemPreviewColumn } from '../../../../core/models/item-table-config';
+import { ITEM_TABLE_CONFIG } from '../../../../core/models/item-table-config';
 import { PaginatedResponse } from '../../../../core/models/paginated-response';
+
+type UserFormValue = {
+  name: string;
+  surname: string;
+  username: string;
+  email: string;
+  password: string;
+  enabled: boolean;
+};
 
 @Component({
   selector: 'app-data-manager-page',
-  imports: [
-    CommonModule,
-    Sidebar,
-    DataTable,
-    Pagination
-  ],
+  imports: [CommonModule, FormsModule, Sidebar, DataTable, Pagination],
   templateUrl: './data-manager-page.html',
   styleUrl: './data-manager-page.css'
 })
@@ -37,12 +40,24 @@ export class DataManagerPage implements OnInit {
   selectedIds = signal<string[]>([]);
   loading = signal(false);
   isGlobalSearching = signal(false);
-
   page = signal(1);
   limit = signal(10);
   total = signal(0);
   totalPages = signal(0);
   searchTerm = signal('');
+
+  showUserModal = signal(false);
+  editingUserId = signal<string | null>(null);
+  savingUser = signal(false);
+
+  userForm = signal<UserFormValue>({
+    name: '',
+    surname: '',
+    username: '',
+    email: '',
+    password: '',
+    enabled: true
+  });
 
   readonly currentTypeLabel = computed(() => {
     return this.typeOptions.find(option => option.value === this.selectedType())?.label ?? this.selectedType();
@@ -52,7 +67,7 @@ export class DataManagerPage implements OnInit {
     return ITEM_TABLE_CONFIG[this.selectedType()];
   });
 
-  readonly currentPreviewColumns = computed<ItemPreviewColumn[]>(() => {
+  readonly currentPreviewColumns = computed(() => {
     return this.currentTableConfig().previewColumns;
   });
 
@@ -70,9 +85,9 @@ export class DataManagerPage implements OnInit {
     return 'Search...';
   });
 
-  readonly showPagination = computed(() => !this.isGlobalSearching());
-
-
+  readonly isUsersType = computed(() => this.selectedType() === 'users');
+  readonly isEditingUser = computed(() => this.editingUserId() !== null);
+  readonly modalTitle = computed(() => this.isEditingUser() ? 'Edit user' : 'Add user');
 
   ngOnInit(): void {
     this.loadItems();
@@ -82,7 +97,9 @@ export class DataManagerPage implements OnInit {
     this.selectedType.set(type);
     this.selectedIds.set([]);
     this.searchTerm.set('');
+    this.isGlobalSearching.set(false);
     this.page.set(1);
+    this.closeUserModal();
     this.loadItems();
   }
 
@@ -100,17 +117,19 @@ export class DataManagerPage implements OnInit {
     this.page.set(1);
 
     if (this.isGlobalSearching()) {
-    if (this.selectedType() === 'users') {
-      this.searchUsersAcrossAllPages();
+      if (this.selectedType() === 'users') {
+        this.searchUsersAcrossAllPages();
+        return;
+      }
+
+      if (this.selectedType() === 'routes') {
+        this.searchRoutesAcrossAllPages();
+        return;
+      }
+
       return;
     }
 
-    if (this.selectedType() === 'routes') {
-      this.searchRoutesAcrossAllPages();
-      return;
-    }
-  }
-    
     this.loadItems();
   }
 
@@ -209,6 +228,103 @@ export class DataManagerPage implements OnInit {
     this.loadItems();
   }
 
+  onOpenAddUser(): void {
+    this.editingUserId.set(null);
+    this.userForm.set({
+      name: '',
+      surname: '',
+      username: '',
+      email: '',
+      password: '',
+      enabled: true
+    });
+    this.showUserModal.set(true);
+  }
+
+  onOpenEditUser(id: string): void {
+    const item = this.items().find(user => user.id === id);
+    if (!item) return;
+
+    this.editingUserId.set(id);
+    this.userForm.set({
+      name: String(item['name'] ?? ''),
+      surname: String(item['surname'] ?? ''),
+      username: String(item['username'] ?? ''),
+      email: String(item['email'] ?? ''),
+      password: '',
+      enabled: item['enabled'] !== false
+    });
+    this.showUserModal.set(true);
+  }
+
+  onUserFieldChange<K extends keyof UserFormValue>(key: K, value: UserFormValue[K]): void {
+    this.userForm.update(current => ({
+      ...current,
+      [key]: value
+    }));
+  }
+
+  onCloseUserModal(): void {
+    this.closeUserModal();
+  }
+
+  onSubmitUser(): void {
+    if (!this.isUsersType()) return;
+
+    const form = this.userForm();
+
+    if (this.isEditingUser()) {
+      const updatePayload: Record<string, unknown> = {
+        name: form.name.trim(),
+        surname: form.surname.trim(),
+        username: form.username.trim(),
+        email: form.email.trim(),
+        enabled: form.enabled
+      };
+
+      if (form.password.trim()) {
+        updatePayload['password'] = form.password.trim();
+      }
+
+      this.savingUser.set(true);
+      this.dataService.updateItem('users', this.editingUserId()!, updatePayload).subscribe({
+        next: () => {
+          this.savingUser.set(false);
+          this.closeUserModal();
+          this.loadItems();
+        },
+        error: (error) => {
+          console.error('Update user error:', error);
+          this.savingUser.set(false);
+        }
+      });
+
+      return;
+    }
+
+    const createPayload: Record<string, unknown> = {
+      name: form.name.trim(),
+      surname: form.surname.trim(),
+      username: form.username.trim(),
+      email: form.email.trim(),
+      password: form.password.trim()
+    };
+
+    this.savingUser.set(true);
+    this.dataService.createItem('users', createPayload).subscribe({
+      next: () => {
+        this.savingUser.set(false);
+        this.closeUserModal();
+        this.page.set(1);
+        this.loadItems();
+      },
+      error: (error) => {
+        console.error('Create user error:', error);
+        this.savingUser.set(false);
+      }
+    });
+  }
+
   onDeleteItem(id: string): void {
     const confirmed = window.confirm('Are you sure you want to delete this item?');
     if (!confirmed) return;
@@ -241,19 +357,28 @@ export class DataManagerPage implements OnInit {
     this.selectedIds.set(ids);
   }
 
+  onToggleEnabled(itemId: string): void {
+    const item = this.items().find(i => i.id === itemId);
+    if (item) {
+      this.toggleEnabled(item);
+    }
+  }
+
+  private closeUserModal(): void {
+    this.showUserModal.set(false);
+    this.editingUserId.set(null);
+    this.savingUser.set(false);
+  }
+
   private loadItems(): void {
     this.loading.set(true);
 
     const requestedPage = this.page();
     const requestedLimit = this.limit();
 
-    this.dataService.getItems(
-      this.selectedType(),
-      requestedPage,
-      requestedLimit,
-    ).subscribe({
+    this.dataService.getItems(this.selectedType(), requestedPage, requestedLimit).subscribe({
       next: (response) => {
-        const normalizedResponse = response as PaginatedResponse<BaseItem> & Record<string, unknown>;
+        const normalizedResponse = response as unknown as PaginatedResponse<Record<string, unknown>> & Record<string, unknown>;
 
         const rawItems = this.getArrayValue<Record<string, unknown>>(
           [
@@ -308,17 +433,16 @@ export class DataManagerPage implements OnInit {
           ? responseTotal
           : ((requestedPage - 1) * requestedLimit) + responseItems.length + (hasMorePagesByHeuristic ? 1 : 0);
 
-        const normalizedTotalPages = this.getNumberValue(
-          [responseTotalPages],
-          hasKnownTotal
-            ? Math.max(1, Math.ceil(normalizedTotal / Math.max(requestedLimit, 1)))
-            : (hasMorePagesByHeuristic ? requestedPage + 1 : requestedPage)
-        ) ?? 1;
+        const normalizedTotalPages =
+          this.getNumberValue(
+            [responseTotalPages],
+            hasKnownTotal
+              ? Math.max(1, Math.ceil(normalizedTotal / Math.max(requestedLimit, 1)))
+              : (hasMorePagesByHeuristic ? requestedPage + 1 : requestedPage)
+          ) ?? 1;
 
         this.allItems.set(responseItems);
         this.applyLocalFilter();
-
-        this.items.set(responseItems);
         this.page.set(Math.max(1, requestedPage));
         this.limit.set(Math.max(1, requestedLimit));
         this.total.set(Math.max(0, normalizedTotal));
@@ -369,15 +493,7 @@ export class DataManagerPage implements OnInit {
   private normalizeItems(values: Record<string, unknown>[]): BaseItem[] {
     return values.map((value) => {
       const id = this.getStringValue([value['_id']], '');
-
-      const name = this.getStringValue(
-        [
-          value['name'],
-          value['title'],
-          value['label']
-        ],
-        id
-      );
+      const name = this.getStringValue([value['name'], value['title'], value['label']], id);
 
       return {
         ...value,
@@ -385,13 +501,6 @@ export class DataManagerPage implements OnInit {
         name
       } as BaseItem;
     });
-  }
-
-  onToggleEnabled(itemId: string): void {
-    const item = this.items().find(i => i.id === itemId);
-    if (item) {
-      this.toggleEnabled(item);
-    }
   }
 
   private toggleEnabled(item: BaseItem): void {
@@ -404,7 +513,9 @@ export class DataManagerPage implements OnInit {
       return;
     }
 
-    this.dataService.updateItem(this.selectedType(), item.id, { enabled: !currentEnabled }).subscribe({
+    this.dataService.updateItem(this.selectedType(), item.id, {
+      enabled: !currentEnabled
+    }).subscribe({
       next: () => this.loadItems(),
       error: (error) => console.error('Toggle enabled error:', error)
     });
@@ -413,12 +524,10 @@ export class DataManagerPage implements OnInit {
   private getNumberValue(values: unknown[], fallback: number | undefined): number | undefined {
     for (const value of values) {
       const numberValue = typeof value === 'number' ? value : Number(value);
-
       if (Number.isFinite(numberValue) && numberValue >= 0) {
         return numberValue;
       }
     }
-
     return fallback;
   }
 
@@ -428,7 +537,6 @@ export class DataManagerPage implements OnInit {
         return value as T[];
       }
     }
-
     return fallback;
   }
 
@@ -442,7 +550,6 @@ export class DataManagerPage implements OnInit {
         return String(value);
       }
     }
-
     return fallback;
   }
 

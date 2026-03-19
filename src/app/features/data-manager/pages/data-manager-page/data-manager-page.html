@@ -1,58 +1,137 @@
-<div class="page">
-  <app-sidebar
-    [selectedType]="selectedType()"
-    [types]="typeOptions"
-    (typeChange)="onTypeChange($event)"
-  />
-
-  <section class="page__content">
-    <div class="page__card">
+@if (loading()) {
+  <div class="data-manager-page__loading">Loading...</div>
+} @else {
+  <section class="data-manager-page">
+    <app-sidebar
+      [selectedType]="selectedType()"
+      [types]="typeOptions"
+      (typeChange)="onTypeChange($event)"
+    />
+    <div class="data-manager-page__content">
       @if (showSearch()) {
-        <div class="page__toolbar">
-          <div class="searchbar">
-            <input
-              class="searchbar__input"
-              type="text"
-              [placeholder]="searchPlaceholder()"
-              [value]="searchTerm()"
-              (input)="onSearchInput($event)"
-            />
+        <div class="searchbar">
+          <input
+            class="searchbar__input"
+            type="text"
+            [placeholder]="searchPlaceholder()"
+            [value]="searchTerm()"
+            (input)="onSearchInput($event)"
+          />
 
-            @if (searchTerm().trim()) {
-              <button
-                class="searchbar__button"
-                type="button"
-                (click)="clearSearch()"
-              >
-                Clear
-              </button>
-            }
-          </div>
+          @if (searchTerm().trim()) {
+            <button class="searchbar__button" type="button" (click)="clearSearch()">
+              Clear
+            </button>
+          }
         </div>
       }
 
-      @if (loading()) {
-        <div class="page__loading">Loading...</div>
-      } @else {
+      @if (!isGlobalSearching()) {
         <app-pagination
           [page]="page()"
           [limit]="limit()"
           [total]="total()"
           [totalPages]="totalPages()"
+          [canAddUser]="isUsersType()"
           (pageChange)="onPageChange($event)"
           (limitChange)="onLimitChange($event)"
-        />
-
-        <app-data-table
-          [items]="items()"
-          [previewColumns]="currentPreviewColumns()"
-          [selectedIds]="selectedIds()"
-          (deleteItem)="onDeleteItem($event)"
-          (deleteMany)="onDeleteMany($event)"
-          (toggleEnabled)="onToggleEnabled($event)"
-          (selectedIdsChange)="onSelectedIdsChange($event)"
+          (addUserClick)="onOpenAddUser()"
         />
       }
+
+      <app-data-table
+        [items]="items()"
+        [previewColumns]="currentPreviewColumns()"
+        [selectedIds]="selectedIds()"
+        (selectedIdsChange)="onSelectedIdsChange($event)"
+        (deleteItem)="onDeleteItem($event)"
+        (deleteMany)="onDeleteMany($event)"
+        (toggleEnabled)="onToggleEnabled($event)"
+        (editItem)="onOpenEditUser($event)"
+      />
     </div>
   </section>
-</div>
+
+  @if (showUserModal()) {
+    <div class="modal-backdrop" (click)="onCloseUserModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <h2>{{ modalTitle() }}</h2>
+          <button type="button" class="modal__close" (click)="onCloseUserModal()">×</button>
+        </div>
+
+        <div class="modal__body">
+          <label class="form-field">
+            <span>Name</span>
+            <input
+              type="text"
+              [ngModel]="userForm().name"
+              (ngModelChange)="onUserFieldChange('name', $event)"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Surname</span>
+            <input
+              type="text"
+              [ngModel]="userForm().surname"
+              (ngModelChange)="onUserFieldChange('surname', $event)"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Username</span>
+            <input
+              type="text"
+              [ngModel]="userForm().username"
+              (ngModelChange)="onUserFieldChange('username', $event)"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Email</span>
+            <input
+              type="email"
+              [ngModel]="userForm().email"
+              (ngModelChange)="onUserFieldChange('email', $event)"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Password</span>
+            <input
+              type="password"
+              [ngModel]="userForm().password"
+              (ngModelChange)="onUserFieldChange('password', $event)"
+              [placeholder]="isEditingUser() ? 'Leave empty to keep current password' : 'Enter password'"
+            />
+          </label>
+
+          <label class="form-field form-field--checkbox">
+            <input
+              type="checkbox"
+              [ngModel]="userForm().enabled"
+              (ngModelChange)="onUserFieldChange('enabled', $event)"
+            />
+            <span>Active</span>
+          </label>
+        </div>
+
+        <div class="modal__footer">
+          <button type="button" class="btn btn--secondary" (click)="onCloseUserModal()">
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="savingUser()"
+            (click)="onSubmitUser()"
+          >
+            {{ savingUser() ? 'Saving...' : (isEditingUser() ? 'Save changes' : 'Create user') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}
