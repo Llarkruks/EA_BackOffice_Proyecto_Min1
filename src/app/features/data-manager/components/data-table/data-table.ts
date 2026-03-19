@@ -14,12 +14,13 @@ import { ItemActionButtons } from '../item-action-buttons/item-action-buttons';
 export class DataTable {
   readonly items = input<BaseItem[]>([]);
   readonly previewColumns = input<ItemPreviewColumn[]>([]);
-  readonly previewTextMaxLength = input<number>(30);
+  readonly previewTextMaxLength = input(30);
   readonly selectedIds = input<string[]>([]);
 
   readonly deleteItem = output<string>();
   readonly deleteMany = output<string[]>();
   readonly toggleEnabled = output<string>();
+  readonly editItem = output<string>();
   readonly selectedIdsChange = output<string[]>();
 
   expandedRowKey: string | null = null;
@@ -72,12 +73,13 @@ export class DataTable {
     this.toggleEnabled.emit(itemId);
   }
 
+  onItemEdit(itemId: string): void {
+    this.editItem.emit(itemId);
+  }
+
   getPreviewCellText(item: BaseItem, slotIndex: number): string {
     const column = this.getActivePreviewColumns()[slotIndex];
-
-    if (!column) {
-      return '';
-    }
+    if (!column) return '';
 
     const value = this.getPreviewValue(item, column.key);
     return this.truncatePreviewText(value);
@@ -113,7 +115,10 @@ export class DataTable {
   getObjectEntries(item: BaseItem): Array<{ key: string; value: unknown }> {
     return Object.entries(item)
       .filter(([key]) => !(key === 'id' && Object.prototype.hasOwnProperty.call(item, '_id')))
-      .map(([key, value]) => ({ key, value: this.normalizeDetailValue(value) }));
+      .map(([key, value]) => ({
+        key,
+        value: this.normalizeDetailValue(value)
+      }));
   }
 
   private normalizeDetailValue(value: unknown): unknown {
@@ -183,11 +188,8 @@ export class DataTable {
     if (Array.isArray(value)) {
       for (const item of value) {
         const nestedId = this.findNestedObjectId(item);
-        if (nestedId) {
-          return nestedId;
-        }
+        if (nestedId) return nestedId;
       }
-
       return null;
     }
 
@@ -204,9 +206,7 @@ export class DataTable {
 
     for (const nestedValue of Object.values(objectValue)) {
       const nestedId = this.findNestedObjectId(nestedValue);
-      if (nestedId) {
-        return nestedId;
-      }
+      if (nestedId) return nestedId;
     }
 
     return null;

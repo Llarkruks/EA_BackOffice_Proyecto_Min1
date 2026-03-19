@@ -3,12 +3,25 @@ import { CommonModule } from '@angular/common';
 import { BaseItem } from '../../../../core/models/base-item';
 import { DeleteItemActionButton } from './delete-item-action-button';
 import { ToggleEnabledActionButton } from './toggle-enabled-action-button';
+import { EditItemActionButton } from './edit-item-action-button';
 
 @Component({
   selector: 'app-item-action-buttons',
-  imports: [CommonModule, ToggleEnabledActionButton, DeleteItemActionButton],
+  standalone:true,
+  imports: [
+    CommonModule,
+    EditItemActionButton,
+    ToggleEnabledActionButton,
+    DeleteItemActionButton
+  ],
   template: `
     <div class="action-buttons">
+      <app-edit-item-action-button
+        [itemId]="item().id"
+        [inSelectionMode]="inSelectionMode()"
+        (editClick)="onEditClick($event)"
+      />
+
       <app-toggle-enabled-action-button
         [item]="item()"
         [inSelectionMode]="inSelectionMode()"
@@ -36,8 +49,13 @@ import { ToggleEnabledActionButton } from './toggle-enabled-action-button';
 })
 export class ItemActionButtons {
   readonly item = input.required<BaseItem>();
-  readonly inSelectionMode = input<boolean>(false);
+  readonly inSelectionMode = input(false);
 
   readonly deleteClick = output<string>();
   readonly toggleEnabledClick = output<string>();
+  readonly editClick = output<string>();
+
+  onEditClick(itemId: string): void {
+    this.editClick.emit(itemId);
+  }
 }

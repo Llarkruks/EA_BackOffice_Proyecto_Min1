@@ -65,7 +65,7 @@
 .table__header,
 .table__row {
   display: grid;
-  grid-template-columns: 4% repeat(4, 20%) 16%;
+  grid-template-columns: 4% 14% 18% 26% 14% 24%;
   align-items: center;
   gap: 0;
 }

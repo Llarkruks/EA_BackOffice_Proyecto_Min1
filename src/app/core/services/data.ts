@@ -18,7 +18,11 @@ export class DataService {
       .set('page', page)
       .set('limit', limit);
 
-    return this.api.get<PaginatedResponse<BaseItem>>(`/${type}`, params);
+      return this.api.get<PaginatedResponse<BaseItem>>(`/${type}`, params);
+  }
+
+  createItem(type: ItemType, payload: Record<string, unknown>): Observable<unknown> {
+    return this.api.post(`/${type}`, payload);
   }
 
   getAllItems(type: ItemType, limit: number = 50): Observable<BaseItem[]> {

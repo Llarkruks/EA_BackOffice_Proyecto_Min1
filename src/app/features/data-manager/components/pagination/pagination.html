@@ -2,8 +2,7 @@
   <div class="pagination">
     <div class="pagination__info">
       <span class="pagination__range">
-        Showing <strong>{{ startItem }}</strong> - <strong>{{ endItem }}</strong>
-        of <strong>{{ total() }}</strong>
+        Showing <strong>{{ startItem }}</strong> - <strong>{{ endItem }}</strong> of <strong>{{ total() }}</strong>
       </span>
 
       <span class="pagination__page">
@@ -17,10 +16,20 @@
 
         <select [value]="selectedLimitValue" (change)="onLimitChange($event)">
           @for (option of pageSizeOptions; track option) {
-            <option [value]="option" [selected]="option === limit()">{{ option }}</option>
+            <option [value]="option">{{ option }}</option>
           }
         </select>
       </label>
+
+      @if (canAddUser()) {
+        <button
+          type="button"
+          class="pagination__button pagination__button--add"
+          (click)="onAddUser()"
+        >
+          Add user
+        </button>
+      }
 
       <button
         type="button"
