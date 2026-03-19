@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, concatMap, from, map, of, toArray } from 'rxjs';
 
 import { ApiService } from './api';
 import { BaseItem } from '../models/base-item';
@@ -26,6 +26,14 @@ export class DataService {
   }
 
   deleteMany(type: ItemType, ids: string[]): Observable<void> {
-    return this.api.post<void>(`/${type}/bulk-delete`, { ids });
+    if (!ids.length) {
+      return of(undefined);
+    }
+
+    return from(ids).pipe(
+      concatMap((id) => this.deleteItem(type, id)),
+      toArray(),
+      map(() => undefined)
+    );
   }
 }

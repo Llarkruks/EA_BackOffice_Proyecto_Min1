@@ -25,9 +25,9 @@
   </div>
 
   @if (items().length > 0) {
-    @for (item of items(); track item.id) {
+    @for (item of items(); track item.id + '-' + $index; let rowIndex = $index) {
       <div class="table__row-wrapper">
-        <div class="table__row" (click)="toggleExpand(item.id)">
+        <div class="table__row" (click)="toggleExpand(item.id, rowIndex)">
           <div class="table__col table__col--check" (click)="$event.stopPropagation()">
             <input
               type="checkbox"
@@ -41,7 +41,7 @@
           </div>
 
           <div class="table__col table__col--id">
-            {{ item.id }}
+            {{ item['_id'] }}
           </div>
 
           <div class="table__col table__col--actions" (click)="$event.stopPropagation()">
@@ -58,7 +58,7 @@
           </div>
         </div>
 
-        @if (expandedRowId === item.id) {
+        @if (expandedRowKey === getRowKey(item.id, rowIndex)) {
           <div class="table__expanded">
             <div class="table__details">
               @for (entry of getObjectEntries(item); track entry.key) {

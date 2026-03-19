@@ -110,23 +110,34 @@ export class DataManagerPage implements OnInit {
       next: (response) => {
         const normalizedResponse = response as PaginatedResponse<BaseItem> & Record<string, unknown>;
 
-        const responseItems = this.getArrayValue<BaseItem>(
+        const rawItems = this.getArrayValue<Record<string, unknown>>(
           [
             normalizedResponse.data,
             normalizedResponse['items'],
             normalizedResponse['results'],
-            normalizedResponse['docs']
+            normalizedResponse['docs'],
+            this.getValueAtPath(normalizedResponse, ['pagination', 'data']),
+            this.getValueAtPath(normalizedResponse, ['meta', 'data'])
           ],
           []
         );
+
+        const responseItems = this.normalizeItems(rawItems);
 
         const responseTotal = this.getNumberValue(
           [
             normalizedResponse.total,
             normalizedResponse['totalItems'],
+            normalizedResponse['totalCount'],
             normalizedResponse['total_count'],
-            normalizedResponse['count'],
-            normalizedResponse['totalDocs']
+            normalizedResponse['totalDocs'],
+            normalizedResponse['total_documents'],
+            this.getValueAtPath(normalizedResponse, ['pagination', 'total']),
+            this.getValueAtPath(normalizedResponse, ['pagination', 'totalItems']),
+            this.getValueAtPath(normalizedResponse, ['pagination', 'totalCount']),
+            this.getValueAtPath(normalizedResponse, ['meta', 'total']),
+            this.getValueAtPath(normalizedResponse, ['meta', 'totalItems']),
+            this.getValueAtPath(normalizedResponse, ['meta', 'totalCount'])
           ],
           undefined
         );
@@ -136,7 +147,11 @@ export class DataManagerPage implements OnInit {
             normalizedResponse.totalPages,
             normalizedResponse['total_pages'],
             normalizedResponse['pages'],
-            normalizedResponse['pageCount']
+            normalizedResponse['pageCount'],
+            this.getValueAtPath(normalizedResponse, ['pagination', 'totalPages']),
+            this.getValueAtPath(normalizedResponse, ['pagination', 'pages']),
+            this.getValueAtPath(normalizedResponse, ['meta', 'totalPages']),
+            this.getValueAtPath(normalizedResponse, ['meta', 'pageCount'])
           ],
           undefined
         );
@@ -169,6 +184,27 @@ export class DataManagerPage implements OnInit {
     });
   }
 
+  private normalizeItems(values: Record<string, unknown>[]): BaseItem[] {
+    return values.map((value) => {
+      const id = this.getStringValue([value['_id']], '');
+
+      const name = this.getStringValue(
+        [
+          value['name'],
+          value['title'],
+          value['label']
+        ],
+        id
+      );
+
+      return {
+        ...value,
+        id,
+        name
+      } as BaseItem;
+    });
+  }
+
   private getNumberValue(values: unknown[], fallback: number | undefined): number | undefined {
     for (const value of values) {
       const numberValue = typeof value === 'number' ? value : Number(value);
@@ -189,5 +225,33 @@ export class DataManagerPage implements OnInit {
     }
 
     return fallback;
+  }
+
+  private getStringValue(values: unknown[], fallback: string): string {
+    for (const value of values) {
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value;
+      }
+
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return String(value);
+      }
+    }
+
+    return fallback;
+  }
+
+  private getValueAtPath(source: unknown, path: string[]): unknown {
+    let current = source;
+
+    for (const key of path) {
+      if (typeof current !== 'object' || current === null || !(key in current)) {
+        return undefined;
+      }
+
+      current = (current as Record<string, unknown>)[key];
+    }
+
+    return current;
   }
 }

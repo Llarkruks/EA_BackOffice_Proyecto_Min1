@@ -15,15 +15,20 @@ export class DataTable {
   readonly deleteItem = output<string>();
   readonly deleteMany = output<string[]>();
 
-  expandedRowId: string | null = null;
+  expandedRowKey: string | null = null;
   selectedIds = new Set<string>();
 
   get selectionMode(): boolean {
     return this.selectedIds.size > 0;
   }
 
-  toggleExpand(itemId: string): void {
-    this.expandedRowId = this.expandedRowId === itemId ? null : itemId;
+  getRowKey(itemId: string, index: number): string {
+    return `${itemId}::${index}`;
+  }
+
+  toggleExpand(itemId: string, index: number): void {
+    const rowKey = this.getRowKey(itemId, index);
+    this.expandedRowKey = this.expandedRowKey === rowKey ? null : rowKey;
   }
 
   isSelected(itemId: string): boolean {
@@ -55,6 +60,65 @@ export class DataTable {
   }
 
   getObjectEntries(item: BaseItem): Array<{ key: string; value: unknown }> {
-    return Object.entries(item).map(([key, value]) => ({ key, value }));
+    return Object.entries(item)
+      .filter(([key]) => !(key === 'id' && Object.prototype.hasOwnProperty.call(item, '_id')))
+      .map(([key, value]) => ({ key, value: this.normalizeDetailValue(value) }));
+  }
+
+  private normalizeDetailValue(value: unknown): unknown {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      const ids = value
+        .map((item) => this.findNestedObjectId(item))
+        .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
+      return ids.length > 0 ? ids.join(', ') : '-';
+    }
+
+    if (typeof value === 'object') {
+      return this.findNestedObjectId(value) ?? '-';
+    }
+
+    return value;
+  }
+
+  private findNestedObjectId(value: unknown): string | null {
+    if (value === null || value === undefined || typeof value !== 'object') {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const nestedId = this.findNestedObjectId(item);
+        if (nestedId) {
+          return nestedId;
+        }
+      }
+
+      return null;
+    }
+
+    const objectValue = value as Record<string, unknown>;
+    const ownId = objectValue['_id'];
+
+    if (typeof ownId === 'string' && ownId.trim().length > 0) {
+      return ownId;
+    }
+
+    if (typeof ownId === 'number' && Number.isFinite(ownId)) {
+      return String(ownId);
+    }
+
+    for (const nestedValue of Object.values(objectValue)) {
+      const nestedId = this.findNestedObjectId(nestedValue);
+      if (nestedId) {
+        return nestedId;
+      }
+    }
+
+    return null;
   }
 }
