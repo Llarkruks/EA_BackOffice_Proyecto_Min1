@@ -1,8 +1,7 @@
 .pagination {
   margin-top: 0;
   margin-bottom: 18px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;

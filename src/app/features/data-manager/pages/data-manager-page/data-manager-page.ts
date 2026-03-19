@@ -8,6 +8,7 @@ import { Pagination } from '../../components/pagination/pagination';
 import { DataService } from '../../../../core/services/data';
 import { BaseItem } from '../../../../core/models/base-item';
 import { ItemType, ItemTypeOption } from '../../../../core/models/item-type';
+import { ITEM_TABLE_CONFIG, ItemPreviewColumn } from '../../../../core/models/item-table-config';
 import { PaginatedResponse } from '../../../../core/models/paginated-response';
 
 @Component({
@@ -30,12 +31,6 @@ export class DataManagerPage implements OnInit {
     { value: 'points', label: 'Points' }
   ];
 
-  readonly displayFieldMap: Record<ItemType, string> = {
-    users: 'name',
-    routes: 'name',
-    points: 'name'
-  };
-
   selectedType = signal<ItemType>('users');
   items = signal<BaseItem[]>([]);
   loading = signal(false);
@@ -49,8 +44,12 @@ export class DataManagerPage implements OnInit {
     return this.typeOptions.find(option => option.value === this.selectedType())?.label ?? this.selectedType();
   });
 
-  readonly currentDisplayField = computed(() => {
-    return this.displayFieldMap[this.selectedType()];
+  readonly currentTableConfig = computed(() => {
+    return ITEM_TABLE_CONFIG[this.selectedType()];
+  });
+
+  readonly currentPreviewColumns = computed<ItemPreviewColumn[]>(() => {
+    return this.currentTableConfig().previewColumns;
   });
 
   ngOnInit(): void {
@@ -202,6 +201,29 @@ export class DataManagerPage implements OnInit {
         id,
         name
       } as BaseItem;
+    });
+  }
+
+  onToggleEnabled(itemId: string): void {
+    const item = this.items().find(i => i.id === itemId);
+    if (item) {
+      this.toggleEnabled(item);
+    }
+  }
+
+  private toggleEnabled(item: BaseItem): void {
+    if (this.selectedType() !== 'users') {
+      return;
+    }
+
+    const currentEnabled = item['enabled'];
+    if (typeof currentEnabled !== 'boolean') {
+      return;
+    }
+
+    this.dataService.updateItem(this.selectedType(), item.id, { enabled: !currentEnabled }).subscribe({
+      next: () => this.loadItems(),
+      error: (error) => console.error('Toggle enabled error:', error)
     });
   }
 

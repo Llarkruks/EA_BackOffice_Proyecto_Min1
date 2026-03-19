@@ -25,6 +25,10 @@ export class DataService {
     return this.api.delete<void>(`/${type}/${id}`);
   }
 
+  updateItem(type: ItemType, id: string, payload: Record<string, unknown>): Observable<BaseItem> {
+    return this.api.put<BaseItem>(`/${type}/${id}`, payload);
+  }
+
   deleteMany(type: ItemType, ids: string[]): Observable<void> {
     if (!ids.length) {
       return of(undefined);

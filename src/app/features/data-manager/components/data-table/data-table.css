@@ -28,8 +28,7 @@
 }
 
 .table__secondary-btn,
-.table__danger-btn,
-.table__icon-delete {
+.table__danger-btn {
   border: 0;
   cursor: pointer;
   transition:
@@ -66,12 +65,14 @@
 .table__header,
 .table__row {
   display: grid;
-  grid-template-columns: 60px minmax(180px, 2fr) minmax(180px, 2fr) 120px;
+  grid-template-columns: 4% repeat(4, 20%) 16%;
   align-items: center;
+  gap: 0;
 }
 
 .table__header {
   padding: 18px 16px;
+  border-top: 1px solid #e5e7eb;
   border-bottom: 1px solid #e5e7eb;
   color: #6b7280;
   font-size: 15px;
@@ -91,37 +92,69 @@
   transition: background 0.2s ease;
 }
 
-.table__row:hover {
-  background: #f9fafb;
+.table__row:hover .table__col--actions {
+  opacity: 1;
+}
+
+.table__row:hover .table__row-checkbox {
+  opacity: 1;
 }
 
 .table__col {
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 0;
+  padding: 0 8px;
 }
 
-.table__col--id {
+.table__col--header-text {
   color: #6b7280;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table__col--cell-value {
+  position: relative;
+  color: #111827;
   font-size: 16px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  min-height: 40px;
+}
+
+.table__row-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.table__cell-text {
+  width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table__col--actions {
   justify-content: flex-end;
+  text-align: right;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.table__icon-delete {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  background: #fee2e2;
-  color: #b91c1c;
-  font-size: 20px;
-  font-weight: 700;
+.table__col--check {
+  justify-content: flex-start;
+  text-align: left;
 }
 
-.table__icon-delete:hover {
-  background: #fecaca;
+.table__row--disabled {
+  opacity: 0.6;
+  background-color: #f8f9fa;
 }
 
 .table__expanded {

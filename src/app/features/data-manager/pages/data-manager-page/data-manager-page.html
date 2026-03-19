@@ -21,9 +21,10 @@
 
         <app-data-table
           [items]="items()"
-          [displayField]="currentDisplayField()"
+          [previewColumns]="currentPreviewColumns()"
           (deleteItem)="onDeleteItem($event)"
           (deleteMany)="onDeleteMany($event)"
+          (toggleEnabled)="onToggleEnabled($event)"
         />
       }
     </div>
