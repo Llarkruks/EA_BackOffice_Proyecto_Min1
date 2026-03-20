@@ -7,24 +7,29 @@
       [types]="typeOptions"
       (typeChange)="onTypeChange($event)"
     />
+
     <div class="data-manager-page__content">
       @if (showSearch()) {
-        <div class="searchbar">
-          <input
-            class="searchbar__input"
-            type="text"
-            [placeholder]="searchPlaceholder()"
-            [value]="searchTerm()"
-            (input)="onSearchInput($event)"
-          />
+      <div class="searchbar">
+        <input
+          class="searchbar__input"
+          type="text"
+          [placeholder]="searchPlaceholder()"
+          [value]="searchTerm()"
+          (input)="onSearchInput($event)"
+        />
 
-          @if (searchTerm().trim()) {
-            <button class="searchbar__button" type="button" (click)="clearSearch()">
-              Clear
-            </button>
-          }
-        </div>
-      }
+        @if (searchTerm().trim()) {
+          <button class="searchbar__button" type="button" (click)="clearSearch()">
+            Clear
+          </button>
+        }
+
+        @if (searching()) {
+          <span class="searchbar__status">Searching...</span>
+        }
+      </div>
+    }
 
       @if (!isGlobalSearching()) {
         <app-pagination
@@ -32,10 +37,11 @@
           [limit]="limit()"
           [total]="total()"
           [totalPages]="totalPages()"
-          [canAddUser]="isUsersType()"
+          [canAddItem]="canAddCurrentType()"
+          [addButtonLabel]="addButtonLabel()"
           (pageChange)="onPageChange($event)"
           (limitChange)="onLimitChange($event)"
-          (addUserClick)="onOpenAddUser()"
+          (addItemClick)="onOpenAddItem()"
         />
       }
 
@@ -47,7 +53,7 @@
         (deleteItem)="onDeleteItem($event)"
         (deleteMany)="onDeleteMany($event)"
         (toggleEnabled)="onToggleEnabled($event)"
-        (editItem)="onOpenEditUser($event)"
+        (editItem)="onOpenEditItem($event)"
       />
     </div>
   </section>
@@ -129,6 +135,117 @@
             (click)="onSubmitUser()"
           >
             {{ savingUser() ? 'Saving...' : (isEditingUser() ? 'Save changes' : 'Create user') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (showRouteModal()) {
+    <div class="modal-backdrop" (click)="onCloseRouteModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <h2>{{ routeModalTitle() }}</h2>
+          <button type="button" class="modal__close" (click)="onCloseRouteModal()">×</button>
+        </div>
+
+        <div class="modal__body">
+          <label class="form-field">
+            <span>Name</span>
+            <input
+              type="text"
+              [ngModel]="routeForm().name"
+              (ngModelChange)="onRouteFieldChange('name', $event)"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Description</span>
+            <textarea
+              [ngModel]="routeForm().description"
+              (ngModelChange)="onRouteFieldChange('description', $event)"
+            ></textarea>
+          </label>
+
+          <label class="form-field">
+            <span>City</span>
+            <input
+              type="text"
+              [ngModel]="routeForm().city"
+              (ngModelChange)="onRouteFieldChange('city', $event)"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Country</span>
+            <input
+              type="text"
+              [ngModel]="routeForm().country"
+              (ngModelChange)="onRouteFieldChange('country', $event)"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Distance</span>
+            <input
+              type="number"
+              step="0.1"
+              [ngModel]="routeForm().distance"
+              (ngModelChange)="onRouteFieldChange('distance', $event === '' ? null : $any($event))"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Duration</span>
+            <input
+              type="number"
+              [ngModel]="routeForm().duration"
+              (ngModelChange)="onRouteFieldChange('duration', $event === '' ? null : $any($event))"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Difficulty</span>
+            <input
+              type="text"
+              [ngModel]="routeForm().difficulty"
+              (ngModelChange)="onRouteFieldChange('difficulty', $event)"
+              placeholder="easy / medium / hard"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>Tags</span>
+            <input
+              type="text"
+              [ngModel]="routeForm().tags"
+              (ngModelChange)="onRouteFieldChange('tags', $event)"
+              placeholder="montaña, naturaleza"
+            />
+          </label>
+
+          <label class="form-field">
+            <span>User ID</span>
+            <input
+              type="text"
+              [ngModel]="routeForm().userId"
+              (ngModelChange)="onRouteFieldChange('userId', $event)"
+            />
+          </label>
+        </div>
+
+        <div class="modal__footer">
+          <button type="button" class="btn btn--secondary" (click)="onCloseRouteModal()">
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="savingRoute()"
+            (click)="onSubmitRoute()"
+          >
+            {{ savingRoute() ? 'Saving...' : (isEditingRoute() ? 'Save changes' : 'Create route') }}
           </button>
         </div>
       </div>

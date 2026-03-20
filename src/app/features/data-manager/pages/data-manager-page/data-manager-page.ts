@@ -19,6 +19,18 @@ type UserFormValue = {
   enabled: boolean;
 };
 
+type RouteFormValue = {
+  name: string;
+  description: string;
+  city: string;
+  country: string;
+  distance: number | null;
+  duration: number | null;
+  difficulty: string;
+  tags: string;
+  userId: string;
+};
+
 @Component({
   selector: 'app-data-manager-page',
   imports: [CommonModule, FormsModule, Sidebar, DataTable, Pagination],
@@ -50,6 +62,12 @@ export class DataManagerPage implements OnInit {
   editingUserId = signal<string | null>(null);
   savingUser = signal(false);
 
+  showRouteModal = signal(false);
+  editingRouteId = signal<string | null>(null);
+  savingRoute = signal(false);
+
+  searching = signal(false);
+
   userForm = signal<UserFormValue>({
     name: '',
     surname: '',
@@ -57,6 +75,18 @@ export class DataManagerPage implements OnInit {
     email: '',
     password: '',
     enabled: true
+  });
+
+  routeForm = signal<RouteFormValue>({
+    name: '',
+    description: '',
+    city: '',
+    country: '',
+    distance: null,
+    duration: null,
+    difficulty: '',
+    tags: '',
+    userId: ''
   });
 
   readonly currentTypeLabel = computed(() => {
@@ -86,8 +116,24 @@ export class DataManagerPage implements OnInit {
   });
 
   readonly isUsersType = computed(() => this.selectedType() === 'users');
+  readonly isRoutesType = computed(() => this.selectedType() === 'routes');
+
   readonly isEditingUser = computed(() => this.editingUserId() !== null);
+  readonly isEditingRoute = computed(() => this.editingRouteId() !== null);
+
   readonly modalTitle = computed(() => this.isEditingUser() ? 'Edit user' : 'Add user');
+  readonly routeModalTitle = computed(() => this.isEditingRoute() ? 'Edit route' : 'Add route');
+
+  readonly canAddCurrentType = computed(() => {
+    const type = this.selectedType();
+    return type === 'users' || type === 'routes';
+  });
+
+  readonly addButtonLabel = computed(() => {
+    if (this.selectedType() === 'users') return 'Add user';
+    if (this.selectedType() === 'routes') return 'Add route';
+    return 'Add item';
+  });
 
   ngOnInit(): void {
     this.loadItems();
@@ -100,6 +146,7 @@ export class DataManagerPage implements OnInit {
     this.isGlobalSearching.set(false);
     this.page.set(1);
     this.closeUserModal();
+    this.closeRouteModal();
     this.loadItems();
   }
 
@@ -151,81 +198,105 @@ export class DataManagerPage implements OnInit {
   }
 
   private searchUsersAcrossAllPages(): void {
-    const term = this.searchTerm().trim().toLowerCase();
+  const term = this.searchTerm().trim().toLowerCase();
 
-    if (!term) {
-      this.isGlobalSearching.set(false);
-      this.loadItems();
-      return;
-    }
-
-    this.loading.set(true);
-    this.isGlobalSearching.set(true);
-
-    this.dataService.getAllItems('users', 50).subscribe({
-      next: (allUsers) => {
-        const normalizedUsers = this.normalizeItems(allUsers as Record<string, unknown>[]);
-
-        const filteredUsers = normalizedUsers.filter((item: BaseItem) => {
-          const name = this.valueToSearchText(item['name']);
-          return name.includes(term);
-        });
-
-        this.allItems.set(normalizedUsers);
-        this.items.set(filteredUsers);
-        this.total.set(filteredUsers.length);
-        this.totalPages.set(1);
-        this.page.set(1);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        console.error('Global user search error:', error);
-        this.loading.set(false);
-        this.isGlobalSearching.set(false);
-      }
-    });
+  if (!term) {
+    this.isGlobalSearching.set(false);
+    this.searching.set(false);
+    this.loadItems();
+    return;
   }
+
+  this.searching.set(true);
+  this.isGlobalSearching.set(true);
+
+  this.dataService.getAllItems('users', 50).subscribe({
+    next: (allUsers) => {
+      const normalizedUsers = this.normalizeItems(allUsers as Record<string, unknown>[]);
+
+      const filteredUsers = normalizedUsers.filter((item: BaseItem) => {
+        const name = this.valueToSearchText(item['name']);
+        return name.includes(term);
+      });
+
+      this.allItems.set(normalizedUsers);
+      this.items.set(filteredUsers);
+      this.total.set(filteredUsers.length);
+      this.totalPages.set(1);
+      this.page.set(1);
+      this.searching.set(false);
+    },
+    error: (error) => {
+      console.error('Global user search error:', error);
+      this.searching.set(false);
+      this.isGlobalSearching.set(false);
+    }
+  });
+}
 
   private searchRoutesAcrossAllPages(): void {
-    const term = this.searchTerm().trim().toLowerCase();
+  const term = this.searchTerm().trim().toLowerCase();
 
-    if (!term) {
-      this.isGlobalSearching.set(false);
-      this.loadItems();
-      return;
-    }
-
-    this.loading.set(true);
-    this.isGlobalSearching.set(true);
-
-    this.dataService.getAllItems('routes', 50).subscribe({
-      next: (allRoutes) => {
-        const normalizedRoutes = this.normalizeItems(allRoutes as Record<string, unknown>[]);
-
-        const filteredRoutes = normalizedRoutes.filter((item: BaseItem) => {
-          const city = this.valueToSearchText(item['city']);
-          return city.includes(term);
-        });
-
-        this.allItems.set(normalizedRoutes);
-        this.items.set(filteredRoutes);
-        this.total.set(filteredRoutes.length);
-        this.totalPages.set(1);
-        this.page.set(1);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        console.error('Global route search error:', error);
-        this.loading.set(false);
-        this.isGlobalSearching.set(false);
-      }
-    });
+  if (!term) {
+    this.isGlobalSearching.set(false);
+    this.searching.set(false);
+    this.loadItems();
+    return;
   }
+
+  this.searching.set(true);
+  this.isGlobalSearching.set(true);
+
+  this.dataService.getAllItems('routes', 50).subscribe({
+    next: (allRoutes) => {
+      const normalizedRoutes = this.normalizeItems(allRoutes as Record<string, unknown>[]);
+
+      const filteredRoutes = normalizedRoutes.filter((item: BaseItem) => {
+        const city = this.valueToSearchText(item['city']);
+        return city.includes(term);
+      });
+
+      this.allItems.set(normalizedRoutes);
+      this.items.set(filteredRoutes);
+      this.total.set(filteredRoutes.length);
+      this.totalPages.set(1);
+      this.page.set(1);
+      this.searching.set(false);
+    },
+    error: (error) => {
+      console.error('Global route search error:', error);
+      this.searching.set(false);
+      this.isGlobalSearching.set(false);
+    }
+  });
+}
 
   clearSearch(): void {
     this.searchTerm.set('');
     this.isGlobalSearching.set(false);
     this.loadItems();
+  }
+
+  onOpenAddItem(): void {
+    if (this.selectedType() === 'users') {
+      this.onOpenAddUser();
+      return;
+    }
+
+    if (this.selectedType() === 'routes') {
+      this.onOpenAddRoute();
+    }
+  }
+
+  onOpenEditItem(id: string): void {
+    if (this.selectedType() === 'users') {
+      this.onOpenEditUser(id);
+      return;
+    }
+
+    if (this.selectedType() === 'routes') {
+      this.onOpenEditRoute(id);
+    }
   }
 
   onOpenAddUser(): void {
@@ -325,6 +396,105 @@ export class DataManagerPage implements OnInit {
     });
   }
 
+  onOpenAddRoute(): void {
+    this.editingRouteId.set(null);
+    this.routeForm.set({
+      name: '',
+      description: '',
+      city: '',
+      country: '',
+      distance: null,
+      duration: null,
+      difficulty: '',
+      tags: '',
+      userId: ''
+    });
+    this.showRouteModal.set(true);
+  }
+
+  onOpenEditRoute(id: string): void {
+    const item = this.items().find(route => route.id === id);
+    if (!item) return;
+
+    this.editingRouteId.set(id);
+    this.routeForm.set({
+      name: String(item['name'] ?? ''),
+      description: String(item['description'] ?? ''),
+      city: String(item['city'] ?? ''),
+      country: String(item['country'] ?? ''),
+      distance: typeof item['distance'] === 'number' ? item['distance'] : Number(item['distance'] ?? 0),
+      duration: typeof item['duration'] === 'number' ? item['duration'] : Number(item['duration'] ?? 0),
+      difficulty: String(item['difficulty'] ?? ''),
+      tags: Array.isArray(item['tags']) ? item['tags'].join(', ') : '',
+      userId: String(item['userId'] ?? item['user'] ?? '')
+    });
+
+    this.showRouteModal.set(true);
+  }
+
+  onRouteFieldChange<K extends keyof RouteFormValue>(key: K, value: RouteFormValue[K]): void {
+    this.routeForm.update(current => ({
+      ...current,
+      [key]: value
+    }));
+  }
+
+  onCloseRouteModal(): void {
+    this.closeRouteModal();
+  }
+
+  onSubmitRoute(): void {
+    if (!this.isRoutesType()) return;
+
+    const form = this.routeForm();
+
+    const payload: Record<string, unknown> = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      city: form.city.trim(),
+      country: form.country.trim(),
+      distance: form.distance === null ? 0 : Number(form.distance),
+      duration: form.duration === null ? 0 : Number(form.duration),
+      difficulty: form.difficulty.trim(),
+      tags: form.tags
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(Boolean),
+      userId: form.userId.trim()
+    };
+
+    this.savingRoute.set(true);
+
+    if (this.isEditingRoute()) {
+      this.dataService.updateItem('routes', this.editingRouteId()!, payload).subscribe({
+        next: () => {
+          this.savingRoute.set(false);
+          this.closeRouteModal();
+          this.loadItems();
+        },
+        error: (error) => {
+          console.error('Update route error:', error);
+          this.savingRoute.set(false);
+        }
+      });
+
+      return;
+    }
+
+    this.dataService.createItem('routes', payload).subscribe({
+      next: () => {
+        this.savingRoute.set(false);
+        this.closeRouteModal();
+        this.page.set(1);
+        this.loadItems();
+      },
+      error: (error) => {
+        console.error('Create route error:', error);
+        this.savingRoute.set(false);
+      }
+    });
+  }
+
   onDeleteItem(id: string): void {
     const confirmed = window.confirm('Are you sure you want to delete this item?');
     if (!confirmed) return;
@@ -368,6 +538,12 @@ export class DataManagerPage implements OnInit {
     this.showUserModal.set(false);
     this.editingUserId.set(null);
     this.savingUser.set(false);
+  }
+
+  private closeRouteModal(): void {
+    this.showRouteModal.set(false);
+    this.editingRouteId.set(null);
+    this.savingRoute.set(false);
   }
 
   private loadItems(): void {

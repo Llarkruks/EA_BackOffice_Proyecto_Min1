@@ -1,4 +1,4 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseItem } from '../../../../core/models/base-item';
 import { ItemPreviewColumn } from '../../../../core/models/item-table-config';
@@ -24,8 +24,16 @@ export class DataTable {
   readonly selectedIdsChange = output<string[]>();
 
   expandedRowKey: string | null = null;
-  readonly previewSlots = [0, 1, 2, 3];
   private readonly maxPreviewColumns = 4;
+
+  readonly activePreviewColumns = computed(() => {
+    return this.previewColumns().slice(0, this.maxPreviewColumns);
+  });
+
+  readonly tableGridTemplateColumns = computed(() => {
+    const previewCount = Math.max(1, this.activePreviewColumns().length);
+    return `52px repeat(${previewCount}, minmax(0, 1fr)) 112px`;
+  });
 
   get selectionMode(): boolean {
     return this.selectedIds().length > 0;
@@ -33,10 +41,6 @@ export class DataTable {
 
   get selectedCount(): number {
     return this.selectedIds().length;
-  }
-
-  getPreviewHeader(slotIndex: number): string {
-    return this.getActivePreviewColumns()[slotIndex]?.label ?? '';
   }
 
   getRowKey(itemId: string, index: number): string {
@@ -77,10 +81,7 @@ export class DataTable {
     this.editItem.emit(itemId);
   }
 
-  getPreviewCellText(item: BaseItem, slotIndex: number): string {
-    const column = this.getActivePreviewColumns()[slotIndex];
-    if (!column) return '';
-
+  getPreviewCellText(item: BaseItem, column: ItemPreviewColumn): string {
     const value = this.getPreviewValue(item, column.key);
     return this.truncatePreviewText(value);
   }
@@ -170,10 +171,6 @@ export class DataTable {
     }
 
     return String(this.normalizeDetailValue(value));
-  }
-
-  private getActivePreviewColumns(): ItemPreviewColumn[] {
-    return this.previewColumns().slice(0, this.maxPreviewColumns);
   }
 
   private getSelectedIdSet(): Set<string> {

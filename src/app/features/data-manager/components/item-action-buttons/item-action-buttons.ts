@@ -7,7 +7,7 @@ import { EditItemActionButton } from './edit-item-action-button';
 
 @Component({
   selector: 'app-item-action-buttons',
-  standalone:true,
+  standalone: true,
   imports: [
     CommonModule,
     EditItemActionButton,
@@ -22,11 +22,13 @@ import { EditItemActionButton } from './edit-item-action-button';
         (editClick)="onEditClick($event)"
       />
 
-      <app-toggle-enabled-action-button
-        [item]="item()"
-        [inSelectionMode]="inSelectionMode()"
-        (toggleEnabledClick)="toggleEnabledClick.emit($event)"
-      />
+      @if (showToggleEnabled()) {
+        <app-toggle-enabled-action-button
+          [item]="item()"
+          [inSelectionMode]="inSelectionMode()"
+          (toggleEnabledClick)="toggleEnabledClick.emit($event)"
+        />
+      }
 
       <app-delete-item-action-button
         [itemId]="item().id"
@@ -57,5 +59,9 @@ export class ItemActionButtons {
 
   onEditClick(itemId: string): void {
     this.editClick.emit(itemId);
+  }
+
+  showToggleEnabled(): boolean {
+    return typeof this.item()['enabled'] === 'boolean';
   }
 }

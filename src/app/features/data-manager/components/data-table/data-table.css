@@ -31,9 +31,7 @@
 .table__danger-btn {
   border: 0;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
 }
 
 .table__secondary-btn {
@@ -65,7 +63,6 @@
 .table__header,
 .table__row {
   display: grid;
-  grid-template-columns: 4% 14% 18% 26% 14% 24%;
   align-items: center;
   gap: 0;
 }
@@ -103,13 +100,13 @@
 .table__col {
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
   min-width: 0;
   padding: 0 8px;
 }
 
 .table__col--header-text {
+  justify-content: flex-start;
+  text-align: left;
   color: #6b7280;
   font-size: 15px;
   font-weight: 800;
@@ -118,7 +115,8 @@
 }
 
 .table__col--cell-value {
-  position: relative;
+  justify-content: flex-start;
+  text-align: left;
   color: #111827;
   font-size: 16px;
   min-height: 40px;
@@ -137,8 +135,9 @@
 }
 
 .table__cell-text {
+  display: block;
   width: 100%;
-  text-align: center;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
