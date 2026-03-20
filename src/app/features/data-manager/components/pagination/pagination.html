@@ -13,7 +13,6 @@
     <div class="pagination__controls">
       <label class="pagination__limit">
         <span>Items per page</span>
-
         <select [value]="selectedLimitValue" (change)="onLimitChange($event)">
           @for (option of pageSizeOptions; track option) {
             <option [value]="option">{{ option }}</option>
@@ -21,13 +20,13 @@
         </select>
       </label>
 
-      @if (canAddUser()) {
+      @if (canAddItem()) {
         <button
           type="button"
           class="pagination__button pagination__button--add"
-          (click)="onAddUser()"
+          (click)="onAddItem()"
         >
-          Add user
+          {{ addButtonLabel() }}
         </button>
       }
 

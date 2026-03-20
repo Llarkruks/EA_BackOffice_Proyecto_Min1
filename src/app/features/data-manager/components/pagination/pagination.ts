@@ -12,11 +12,13 @@ export class Pagination {
   readonly limit = input(10);
   readonly total = input(0);
   readonly totalPages = input(0);
-  readonly canAddUser = input(false);
+
+  readonly canAddItem = input(false);
+  readonly addButtonLabel = input('Add item');
 
   readonly pageChange = output<number>();
   readonly limitChange = output<number>();
-  readonly addUserClick = output<void>();
+  readonly addItemClick = output<void>();
 
   readonly pageSizeOptions = [10, 25, 50];
 
@@ -49,8 +51,8 @@ export class Pagination {
     this.limitChange.emit(value);
   }
 
-  onAddUser(): void {
-    this.addUserClick.emit();
+  onAddItem(): void {
+    this.addItemClick.emit();
   }
 
   get startItem(): number {
