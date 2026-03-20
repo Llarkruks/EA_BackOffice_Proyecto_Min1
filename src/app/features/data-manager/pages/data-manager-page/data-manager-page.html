@@ -251,4 +251,96 @@
       </div>
     </div>
   }
+
+  @if (showPointModal()) {
+  <div class="modal-backdrop" (click)="onClosePointModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>{{ pointModalTitle() }}</h2>
+        <button type="button" class="modal__close" (click)="onClosePointModal()">×</button>
+      </div>
+
+      <div class="modal__body">
+        <label class="form-field">
+          <span>Name</span>
+          <input
+            type="text"
+            [ngModel]="pointForm().name"
+            (ngModelChange)="onPointFieldChange('name', $event)"
+          />
+        </label>
+
+        <label class="form-field">
+          <span>Description</span>
+          <textarea
+            [ngModel]="pointForm().description"
+            (ngModelChange)="onPointFieldChange('description', $event)"
+          ></textarea>
+        </label>
+
+        <label class="form-field">
+          <span>Latitude</span>
+          <input
+            type="number"
+            step="any"
+            [ngModel]="pointForm().latitude"
+            (ngModelChange)="onPointFieldChange('latitude', $event === '' ? null : $any($event))"
+          />
+        </label>
+
+        <label class="form-field">
+          <span>Longitude</span>
+          <input
+            type="number"
+            step="any"
+            [ngModel]="pointForm().longitude"
+            (ngModelChange)="onPointFieldChange('longitude', $event === '' ? null : $any($event))"
+          />
+        </label>
+
+        <label class="form-field">
+          <span>Image</span>
+          <input
+            type="text"
+            [ngModel]="pointForm().image"
+            (ngModelChange)="onPointFieldChange('image', $event)"
+          />
+        </label>
+
+        <label class="form-field">
+          <span>Route ID</span>
+          <input
+            type="text"
+            [ngModel]="pointForm().routeId"
+            (ngModelChange)="onPointFieldChange('routeId', $event)"
+          />
+        </label>
+
+        <label class="form-field">
+          <span>Index</span>
+          <input
+            type="number"
+            [ngModel]="pointForm().index"
+            (ngModelChange)="onPointFieldChange('index', $event === '' ? null : $any($event))"
+          />
+        </label>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" (click)="onClosePointModal()">
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="btn btn--primary"
+          [disabled]="savingPoint()"
+          (click)="onSubmitPoint()"
+        >
+          {{ savingPoint() ? 'Saving...' : (isEditingPoint() ? 'Save changes' : 'Create point') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
 }

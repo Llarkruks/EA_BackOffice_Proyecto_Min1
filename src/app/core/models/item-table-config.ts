@@ -27,6 +27,8 @@ export const ITEM_TABLE_CONFIG: Record<ItemType, ItemTableConfig> = {
   points: {
     previewColumns: [
       { key: 'name', label: 'Name' },
+      { key: 'description', label: 'Description' },
+      { key: 'index', label: 'Index' },
       { key: '_id', label: 'ID' }
     ]
   }

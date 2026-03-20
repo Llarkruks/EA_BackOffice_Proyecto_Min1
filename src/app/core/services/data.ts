@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
-import { Observable, concatMap, from, map, of, toArray, expand, reduce, EMPTY  } from 'rxjs';
+import { Observable, concatMap, from, map, of, toArray, expand, reduce, EMPTY } from 'rxjs';
 
 import { ApiService } from './api';
 import { BaseItem } from '../models/base-item';
@@ -14,15 +14,15 @@ export class DataService {
   private readonly api = inject(ApiService);
 
   getItems(type: ItemType, page: number, limit: number): Observable<PaginatedResponse<BaseItem>> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', page)
       .set('limit', limit);
 
-      return this.api.get<PaginatedResponse<BaseItem>>(`/${type}`, params);
+    return this.api.get<PaginatedResponse<BaseItem>>(`/${type}`, params);
   }
 
-  createItem(type: ItemType, payload: Record<string, unknown>): Observable<unknown> {
-    return this.api.post(`/${type}`, payload);
+  createItem(type: ItemType, payload: Record<string, unknown>): Observable<BaseItem> {
+    return this.api.post<BaseItem>(`/${type}`, payload);
   }
 
   getAllItems(type: ItemType, limit: number = 50): Observable<BaseItem[]> {
@@ -63,21 +63,21 @@ export class DataService {
   }
 
   private extractItems(response: PaginatedResponse<BaseItem>): BaseItem[] {
-  const normalizedResponse = response as PaginatedResponse<BaseItem> & Record<string, unknown>;
+    const normalizedResponse = response as PaginatedResponse<BaseItem> & Record<string, unknown>;
 
-  const possibleItems = [
-    normalizedResponse.data,
-    normalizedResponse['items'],
-    normalizedResponse['results'],
-    normalizedResponse['docs']
-  ];
+    const possibleItems = [
+      normalizedResponse.data,
+      normalizedResponse['items'],
+      normalizedResponse['results'],
+      normalizedResponse['docs']
+    ];
 
-  for (const value of possibleItems) {
-    if (Array.isArray(value)) {
-      return value as BaseItem[];
+    for (const value of possibleItems) {
+      if (Array.isArray(value)) {
+        return value as BaseItem[];
+      }
     }
-  }
 
-  return [];
-}
+    return [];
+  }
 }
