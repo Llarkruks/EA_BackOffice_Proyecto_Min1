@@ -1,7 +1,6 @@
 import { Component, input, output, ChangeDetectionStrategy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BaseItem } from '../../../../core/models/base-item';
-import { ItemPreviewColumn } from '../../../../core/models/item-table-config';
+import { ItemActionConfig, ItemModelBase, ItemPreviewColumn } from '../../../../core/models/items';
 import { ItemActionButtons } from '../item-action-buttons/item-action-buttons';
 
 @Component({
@@ -12,8 +11,13 @@ import { ItemActionButtons } from '../item-action-buttons/item-action-buttons';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DataTable {
-  readonly items = input<BaseItem[]>([]);
+  readonly items = input<ItemModelBase[]>([]);
   readonly previewColumns = input<ItemPreviewColumn[]>([]);
+  readonly actionConfig = input<ItemActionConfig>({
+    edit: true,
+    delete: true,
+    toggleEnabled: false
+  });
   readonly previewTextMaxLength = input(30);
   readonly selectedIds = input<string[]>([]);
 
@@ -81,12 +85,12 @@ export class DataTable {
     this.editItem.emit(itemId);
   }
 
-  getPreviewCellText(item: BaseItem, column: ItemPreviewColumn): string {
+  getPreviewCellText(item: ItemModelBase, column: ItemPreviewColumn): string {
     const value = this.getPreviewValue(item, column.key);
     return this.truncatePreviewText(value);
   }
 
-  getPreviewValue(item: BaseItem, key: string): unknown {
+  getPreviewValue(item: ItemModelBase, key: string): unknown {
     if (key === '_id') {
       return item['_id'];
     }
@@ -100,7 +104,7 @@ export class DataTable {
     return this.normalizeDetailValue(value);
   }
 
-  isRowDisabled(item: BaseItem): boolean {
+  isRowDisabled(item: ItemModelBase): boolean {
     return item['enabled'] === false;
   }
 
@@ -113,7 +117,7 @@ export class DataTable {
     this.selectedIdsChange.emit([]);
   }
 
-  getObjectEntries(item: BaseItem): Array<{ key: string; value: unknown }> {
+  getObjectEntries(item: ItemModelBase): Array<{ key: string; value: unknown }> {
     return Object.entries(item)
       .filter(([key]) => !(key === 'id' && Object.prototype.hasOwnProperty.call(item, '_id')))
       .map(([key, value]) => ({

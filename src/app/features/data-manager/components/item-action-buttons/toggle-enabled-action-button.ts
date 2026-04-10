@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { BaseItem } from '../../../../core/models/base-item';
+import { ItemModelBase } from '../../../../core/models/items';
 
 @Component({
   selector: 'app-toggle-enabled-action-button',
@@ -50,7 +50,7 @@ import { BaseItem } from '../../../../core/models/base-item';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ToggleEnabledActionButton {
-  readonly item = input.required<BaseItem>();
+  readonly item = input.required<ItemModelBase>();
   readonly inSelectionMode = input<boolean>(false);
 
   readonly toggleEnabledClick = output<string>();

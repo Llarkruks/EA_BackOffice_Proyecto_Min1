@@ -58,3 +58,37 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 
 ## General
 - All the variables, properties and code comments all in english.
+
+## Data Manager - AI Operating Rules
+
+When implementing or extending item types in Data Manager, follow this workflow strictly.
+
+### Single Source of Truth
+
+- The only place to decide per-item UI behavior is `src/app/core/models/items/index.ts`.
+- Do NOT distribute item-type decisions across page/components when not necessary.
+- Do NOT recreate separate configs for item type list, columns, or buttons in other files.
+
+### Add New Item Type (AI Checklist)
+
+1. Create a new model file in `src/app/core/models/items/`.
+  - Define `XItem`, `CreateXPayload`, `UpdateXPayload`.
+2. Update `src/app/core/models/items/index.ts`:
+  - Export the new model/payload types.
+  - Register the item key in `ItemModelByType`.
+  - Register payload maps in `CreatePayloadByType` and `UpdatePayloadByType`.
+  - Add UI definition in `ITEM_UI_CONFIG`:
+    - `label`
+    - `addButtonLabel`
+    - `previewColumns`
+    - `actions` (`edit`, `delete`, `toggleEnabled`)
+    - `search` (`enabled`, `key`, `placeholder`)
+3. Keep service/page/components generic.
+  - Prefer consuming centralized config, not hardcoded `if/else` per type.
+
+### Guardrails
+
+- If a behavior can be solved by `ITEM_UI_CONFIG`, implement it there first.
+- If extra logic is required in page/components, keep it minimal and generic.
+- Avoid introducing new duplicated enums/types for item keys.
+- After changes, validate with `npm run build`.

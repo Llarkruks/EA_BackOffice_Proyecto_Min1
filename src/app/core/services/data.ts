@@ -3,9 +3,15 @@ import { HttpParams } from '@angular/common/http';
 import { Observable, concatMap, from, map, of, toArray, expand, reduce, EMPTY } from 'rxjs';
 
 import { ApiService } from './api';
-import { BaseItem } from '../models/base-item';
-import { ItemType } from '../models/item-type';
 import { PaginatedResponse } from '../models/paginated-response';
+import {
+  CreatePayloadByType,
+  ItemModelByType,
+  ItemType,
+  UpdatePayloadByType,
+  normalizeItemByType,
+  normalizeManyByType
+} from '../models/items';
 
 @Injectable({
   providedIn: 'root'
@@ -13,23 +19,34 @@ import { PaginatedResponse } from '../models/paginated-response';
 export class DataService {
   private readonly api = inject(ApiService);
 
-  getItems(type: ItemType, page: number, limit: number): Observable<PaginatedResponse<BaseItem>> {
+  getItems<TType extends ItemType>(
+    type: TType,
+    page: number,
+    limit: number
+  ): Observable<PaginatedResponse<ItemModelByType[TType]>> {
     const params = new HttpParams()
       .set('page', page)
       .set('limit', limit);
 
-    return this.api.get<PaginatedResponse<BaseItem>>(`/${type}`, params);
+    return this.api
+      .get<Record<string, unknown> | PaginatedResponse<Record<string, unknown>>>(`/${type}`, params)
+      .pipe(map((response) => this.normalizePaginatedResponse(type, response, page, limit)));
   }
 
-  createItem(type: ItemType, payload: Record<string, unknown>): Observable<BaseItem> {
-    return this.api.post<BaseItem>(`/${type}`, payload);
+  createItem<TType extends ItemType>(
+    type: TType,
+    payload: CreatePayloadByType[TType]
+  ): Observable<ItemModelByType[TType]> {
+    return this.api
+      .post<Record<string, unknown>>(`/${type}`, payload)
+      .pipe(map((item) => normalizeItemByType(type, item)));
   }
 
-  getAllItems(type: ItemType, limit: number = 50): Observable<BaseItem[]> {
+  getAllItems<TType extends ItemType>(type: TType, limit: number = 50): Observable<ItemModelByType[TType][]> {
     return this.getItems(type, 1, limit).pipe(
       expand((response, index) => {
         const currentPage = index + 1;
-        const pageItems = this.extractItems(response);
+        const pageItems = response.data;
 
         if (pageItems.length < limit) {
           return EMPTY;
@@ -37,20 +54,26 @@ export class DataService {
 
         return this.getItems(type, currentPage + 1, limit);
       }),
-      map((response) => this.extractItems(response)),
-      reduce((allItems, pageItems) => [...allItems, ...pageItems], [] as BaseItem[])
+      map((response) => response.data),
+      reduce((allItems, pageItems) => [...allItems, ...pageItems], [] as ItemModelByType[TType][])
     );
   }
 
-  deleteItem(type: ItemType, id: string): Observable<void> {
+  deleteItem<TType extends ItemType>(type: TType, id: string): Observable<void> {
     return this.api.delete<void>(`/${type}/${id}`);
   }
 
-  updateItem(type: ItemType, id: string, payload: Record<string, unknown>): Observable<BaseItem> {
-    return this.api.put<BaseItem>(`/${type}/${id}`, payload);
+  updateItem<TType extends ItemType>(
+    type: TType,
+    id: string,
+    payload: UpdatePayloadByType[TType]
+  ): Observable<ItemModelByType[TType]> {
+    return this.api
+      .put<Record<string, unknown>>(`/${type}/${id}`, payload)
+      .pipe(map((item) => normalizeItemByType(type, item)));
   }
 
-  deleteMany(type: ItemType, ids: string[]): Observable<void> {
+  deleteMany<TType extends ItemType>(type: TType, ids: string[]): Observable<void> {
     if (!ids.length) {
       return of(undefined);
     }
@@ -62,22 +85,129 @@ export class DataService {
     );
   }
 
-  private extractItems(response: PaginatedResponse<BaseItem>): BaseItem[] {
-    const normalizedResponse = response as PaginatedResponse<BaseItem> & Record<string, unknown>;
+  private normalizePaginatedResponse<TType extends ItemType>(
+    type: TType,
+    response: Record<string, unknown> | PaginatedResponse<Record<string, unknown>>,
+    requestedPage: number,
+    requestedLimit: number
+  ): PaginatedResponse<ItemModelByType[TType]> {
+    const normalizedResponse = response as Record<string, unknown>;
 
-    const possibleItems = [
-      normalizedResponse.data,
+    const rawItems = this.getArrayValue<Record<string, unknown>>(
+      [
+      normalizedResponse['data'],
       normalizedResponse['items'],
       normalizedResponse['results'],
-      normalizedResponse['docs']
-    ];
+      normalizedResponse['docs'],
+      this.getValueAtPath(normalizedResponse, ['pagination', 'data']),
+      this.getValueAtPath(normalizedResponse, ['meta', 'data'])
+      ],
+      []
+    );
 
-    for (const value of possibleItems) {
-      if (Array.isArray(value)) {
-        return value as BaseItem[];
+    const items = normalizeManyByType(type, rawItems);
+
+    const page = this.getNumberValue(
+      [
+        normalizedResponse['page'],
+        this.getValueAtPath(normalizedResponse, ['pagination', 'page']),
+        this.getValueAtPath(normalizedResponse, ['meta', 'page'])
+      ],
+      requestedPage
+    ) ?? 1;
+
+    const limit = this.getNumberValue(
+      [
+        normalizedResponse['limit'],
+        this.getValueAtPath(normalizedResponse, ['pagination', 'limit']),
+        this.getValueAtPath(normalizedResponse, ['meta', 'limit'])
+      ],
+      requestedLimit
+    ) ?? 1;
+
+    const total = this.getNumberValue(
+      [
+        normalizedResponse['total'],
+        normalizedResponse['totalItems'],
+        normalizedResponse['totalCount'],
+        normalizedResponse['total_count'],
+        normalizedResponse['totalDocs'],
+        normalizedResponse['total_documents'],
+        this.getValueAtPath(normalizedResponse, ['pagination', 'total']),
+        this.getValueAtPath(normalizedResponse, ['pagination', 'totalItems']),
+        this.getValueAtPath(normalizedResponse, ['pagination', 'totalCount']),
+        this.getValueAtPath(normalizedResponse, ['meta', 'total']),
+        this.getValueAtPath(normalizedResponse, ['meta', 'totalItems']),
+        this.getValueAtPath(normalizedResponse, ['meta', 'totalCount'])
+      ],
+      undefined
+    );
+
+    const hasKnownTotal = typeof total === 'number' && total > 0;
+    const hasMorePagesByHeuristic = items.length === limit;
+
+    const normalizedTotal = hasKnownTotal
+      ? total
+      : ((page - 1) * limit) + items.length + (hasMorePagesByHeuristic ? 1 : 0);
+
+    const totalPages = this.getNumberValue(
+      [
+        normalizedResponse['totalPages'],
+        normalizedResponse['total_pages'],
+        normalizedResponse['pages'],
+        normalizedResponse['pageCount'],
+        this.getValueAtPath(normalizedResponse, ['pagination', 'totalPages']),
+        this.getValueAtPath(normalizedResponse, ['pagination', 'pages']),
+        this.getValueAtPath(normalizedResponse, ['meta', 'totalPages']),
+        this.getValueAtPath(normalizedResponse, ['meta', 'pageCount'])
+      ],
+      hasKnownTotal
+        ? Math.max(1, Math.ceil(normalizedTotal / Math.max(limit, 1)))
+        : (hasMorePagesByHeuristic ? page + 1 : page)
+    ) ?? 1;
+
+    return {
+      data: items,
+      page,
+      limit,
+      total: Math.max(0, normalizedTotal),
+      totalPages: Math.max(1, totalPages)
+    };
+  }
+
+  private getNumberValue(values: unknown[], fallback: number | undefined): number | undefined {
+    for (const value of values) {
+      const numberValue = typeof value === 'number' ? value : Number(value);
+
+      if (Number.isFinite(numberValue) && numberValue >= 0) {
+        return numberValue;
       }
     }
 
-    return [];
+    return fallback;
+  }
+
+  private getArrayValue<T>(values: unknown[], fallback: T[]): T[] {
+    for (const value of values) {
+      if (Array.isArray(value)) {
+        return value as T[];
+      }
+    }
+
+    return fallback;
+  }
+
+  private getValueAtPath(source: unknown, path: string[]): unknown {
+    let current = source;
+
+    for (const key of path) {
+      if (typeof current !== 'object' || current === null || !(key in current)) {
+        return undefined;
+      }
+
+      current = (current as Record<string, unknown>)[key];
+    }
+
+    return current;
   }
 }

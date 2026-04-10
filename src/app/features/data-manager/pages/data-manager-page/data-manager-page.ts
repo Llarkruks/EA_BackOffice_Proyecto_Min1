@@ -5,10 +5,19 @@ import { Sidebar } from '../../components/sidebar/sidebar';
 import { DataTable } from '../../components/data-table/data-table';
 import { Pagination } from '../../components/pagination/pagination';
 import { DataService } from '../../../../core/services/data';
-import { BaseItem } from '../../../../core/models/base-item';
-import { ItemType, ItemTypeOption } from '../../../../core/models/item-type';
-import { ITEM_TABLE_CONFIG } from '../../../../core/models/item-table-config';
-import { PaginatedResponse } from '../../../../core/models/paginated-response';
+import {
+  ITEM_TYPE_OPTIONS,
+  ITEM_UI_CONFIG,
+  ItemActionConfig,
+  ItemModel,
+  ItemType,
+  ItemTypeOption,
+  ItemUiConfig,
+  PointItem,
+  RouteItem,
+  RouteDifficulty,
+  UserItem
+} from '../../../../core/models/items';
 
 type UserFormValue = {
   name: string;
@@ -26,7 +35,7 @@ type RouteFormValue = {
   country: string;
   distance: number | null;
   duration: number | null;
-  difficulty: string;
+  difficulty: RouteDifficulty;
   tags: string;
   userId: string;
 };
@@ -50,15 +59,11 @@ type PointFormValue = {
 export class DataManagerPage implements OnInit {
   private readonly dataService = inject(DataService);
 
-  readonly typeOptions: ItemTypeOption[] = [
-    { value: 'users', label: 'Users' },
-    { value: 'routes', label: 'Routes' },
-    { value: 'points', label: 'Points' }
-  ];
+  readonly typeOptions: ItemTypeOption[] = ITEM_TYPE_OPTIONS;
 
   selectedType = signal<ItemType>('users');
-  items = signal<BaseItem[]>([]);
-  allItems = signal<BaseItem[]>([]);
+  items = signal<ItemModel[]>([]);
+  allItems = signal<ItemModel[]>([]);
   selectedIds = signal<string[]>([]);
   loading = signal(false);
   isGlobalSearching = signal(false);
@@ -101,7 +106,7 @@ export class DataManagerPage implements OnInit {
     country: '',
     distance: null,
     duration: null,
-    difficulty: '',
+    difficulty: 'easy',
     tags: '',
     userId: ''
   });
@@ -117,29 +122,27 @@ export class DataManagerPage implements OnInit {
   });
 
   readonly currentTypeLabel = computed(() => {
-    return this.typeOptions.find(option => option.value === this.selectedType())?.label ?? this.selectedType();
+    return this.currentTypeConfig().label;
   });
 
-  readonly currentTableConfig = computed(() => {
-    return ITEM_TABLE_CONFIG[this.selectedType()];
+  readonly currentTypeConfig = computed<ItemUiConfig>(() => {
+    return ITEM_UI_CONFIG[this.selectedType()];
   });
 
   readonly currentPreviewColumns = computed(() => {
-    return this.currentTableConfig().previewColumns;
+    return this.currentTypeConfig().previewColumns;
+  });
+
+  readonly currentActionConfig = computed<ItemActionConfig>(() => {
+    return this.currentTypeConfig().actions;
   });
 
   readonly showSearch = computed(() => {
-    const type = this.selectedType();
-    return type === 'users' || type === 'routes';
+    return this.currentTypeConfig().search.enabled;
   });
 
   readonly searchPlaceholder = computed(() => {
-    const type = this.selectedType();
-
-    if (type === 'users') return 'Search users by name...';
-    if (type === 'routes') return 'Search routes by city...';
-
-    return 'Search...';
+    return this.currentTypeConfig().search.placeholder;
   });
 
   readonly isUsersType = computed(() => this.selectedType() === 'users');
@@ -160,16 +163,11 @@ export class DataManagerPage implements OnInit {
   );
 
   readonly canAddCurrentType = computed(() => {
-  const type = this.selectedType();
-  return type === 'users' || type === 'routes' || type === 'points';
+  return true;
   });
 
   readonly addButtonLabel = computed(() => {
-  if (this.selectedType() === 'users') return 'Add user';
-  if (this.selectedType() === 'routes') return 'Add route';
-  if (this.selectedType() === 'points') return 'Add point';
-
-  return 'Add item';  
+    return this.currentTypeConfig().addButtonLabel;
   });
 
   ngOnInit(): void {
@@ -203,16 +201,7 @@ export class DataManagerPage implements OnInit {
     this.page.set(1);
 
     if (this.isGlobalSearching()) {
-      if (this.selectedType() === 'users') {
-        this.searchUsersAcrossAllPages();
-        return;
-      }
-
-      if (this.selectedType() === 'routes') {
-        this.searchRoutesAcrossAllPages();
-        return;
-      }
-
+      this.searchAcrossAllPages();
       return;
     }
 
@@ -223,92 +212,50 @@ export class DataManagerPage implements OnInit {
     const value = (event.target as HTMLInputElement).value;
     this.searchTerm.set(value);
 
-    if (this.selectedType() === 'users') {
-      this.searchUsersAcrossAllPages();
-      return;
-    }
-
-    if (this.selectedType() === 'routes') {
-      this.searchRoutesAcrossAllPages();
+    if (this.showSearch()) {
+      this.searchAcrossAllPages();
       return;
     }
 
     this.applyLocalFilter();
   }
 
-  private searchUsersAcrossAllPages(): void {
-  const term = this.searchTerm().trim().toLowerCase();
+  private searchAcrossAllPages(): void {
+    const term = this.searchTerm().trim().toLowerCase();
+    const searchConfig = this.currentTypeConfig().search;
+    const itemType = this.selectedType();
 
-  if (!term) {
-    this.isGlobalSearching.set(false);
-    this.searching.set(false);
-    this.loadItems();
-    return;
-  }
-
-  this.searching.set(true);
-  this.isGlobalSearching.set(true);
-
-  this.dataService.getAllItems('users', 50).subscribe({
-    next: (allUsers) => {
-      const normalizedUsers = this.normalizeItems(allUsers as Record<string, unknown>[]);
-
-      const filteredUsers = normalizedUsers.filter((item: BaseItem) => {
-        const name = this.valueToSearchText(item['name']);
-        return name.includes(term);
-      });
-
-      this.allItems.set(normalizedUsers);
-      this.items.set(filteredUsers);
-      this.total.set(filteredUsers.length);
-      this.totalPages.set(1);
-      this.page.set(1);
-      this.searching.set(false);
-    },
-    error: (error) => {
-      console.error('Global user search error:', error);
-      this.searching.set(false);
+    if (!searchConfig.enabled || !term) {
       this.isGlobalSearching.set(false);
+      this.searching.set(false);
+      this.loadItems();
+      return;
     }
-  });
-}
 
-  private searchRoutesAcrossAllPages(): void {
-  const term = this.searchTerm().trim().toLowerCase();
+    this.searching.set(true);
+    this.isGlobalSearching.set(true);
 
-  if (!term) {
-    this.isGlobalSearching.set(false);
-    this.searching.set(false);
-    this.loadItems();
-    return;
+    this.dataService.getAllItems(itemType, 50).subscribe({
+      next: (allItems) => {
+        const filteredItems = allItems.filter((item) => {
+          const value = this.valueToSearchText(item[searchConfig.key]);
+          return value.includes(term);
+        });
+
+        this.allItems.set(allItems);
+        this.items.set(filteredItems);
+        this.total.set(filteredItems.length);
+        this.totalPages.set(1);
+        this.page.set(1);
+        this.searching.set(false);
+      },
+      error: (error) => {
+        console.error('Global search error:', error);
+        this.searching.set(false);
+        this.isGlobalSearching.set(false);
+      }
+    });
   }
-
-  this.searching.set(true);
-  this.isGlobalSearching.set(true);
-
-  this.dataService.getAllItems('routes', 50).subscribe({
-    next: (allRoutes) => {
-      const normalizedRoutes = this.normalizeItems(allRoutes as Record<string, unknown>[]);
-
-      const filteredRoutes = normalizedRoutes.filter((item: BaseItem) => {
-        const city = this.valueToSearchText(item['city']);
-        return city.includes(term);
-      });
-
-      this.allItems.set(normalizedRoutes);
-      this.items.set(filteredRoutes);
-      this.total.set(filteredRoutes.length);
-      this.totalPages.set(1);
-      this.page.set(1);
-      this.searching.set(false);
-    },
-    error: (error) => {
-      console.error('Global route search error:', error);
-      this.searching.set(false);
-      this.isGlobalSearching.set(false);
-    }
-  });
-}
 
   clearSearch(): void {
     this.searchTerm.set('');
@@ -362,17 +309,17 @@ export class DataManagerPage implements OnInit {
   }
 
   onOpenEditUser(id: string): void {
-    const item = this.items().find(user => user.id === id);
+    const item = this.items().find((user): user is UserItem => user.id === id);
     if (!item) return;
 
     this.editingUserId.set(id);
     this.userForm.set({
-      name: String(item['name'] ?? ''),
-      surname: String(item['surname'] ?? ''),
-      username: String(item['username'] ?? ''),
-      email: String(item['email'] ?? ''),
+      name: item.name,
+      surname: item.surname,
+      username: item.username,
+      email: item.email,
       password: '',
-      enabled: item['enabled'] !== false
+      enabled: item.enabled
     });
     this.showUserModal.set(true);
   }
@@ -394,7 +341,14 @@ export class DataManagerPage implements OnInit {
     const form = this.userForm();
 
     if (this.isEditingUser()) {
-      const updatePayload: Record<string, unknown> = {
+      const updatePayload: {
+        name: string;
+        surname: string;
+        username: string;
+        email: string;
+        enabled: boolean;
+        password?: string;
+      } = {
         name: form.name.trim(),
         surname: form.surname.trim(),
         username: form.username.trim(),
@@ -403,7 +357,7 @@ export class DataManagerPage implements OnInit {
       };
 
       if (form.password.trim()) {
-        updatePayload['password'] = form.password.trim();
+        updatePayload.password = form.password.trim();
       }
 
       this.savingUser.set(true);
@@ -422,7 +376,7 @@ export class DataManagerPage implements OnInit {
       return;
     }
 
-    const createPayload: Record<string, unknown> = {
+    const createPayload = {
       name: form.name.trim(),
       surname: form.surname.trim(),
       username: form.username.trim(),
@@ -454,7 +408,7 @@ export class DataManagerPage implements OnInit {
       country: '',
       distance: null,
       duration: null,
-      difficulty: '',
+      difficulty: 'easy',
       tags: '',
       userId: ''
     });
@@ -462,20 +416,20 @@ export class DataManagerPage implements OnInit {
   }
 
   onOpenEditRoute(id: string): void {
-    const item = this.items().find(route => route.id === id);
+    const item = this.items().find((route): route is RouteItem => route.id === id);
     if (!item) return;
 
     this.editingRouteId.set(id);
     this.routeForm.set({
-      name: String(item['name'] ?? ''),
-      description: String(item['description'] ?? ''),
-      city: String(item['city'] ?? ''),
-      country: String(item['country'] ?? ''),
-      distance: typeof item['distance'] === 'number' ? item['distance'] : Number(item['distance'] ?? 0),
-      duration: typeof item['duration'] === 'number' ? item['duration'] : Number(item['duration'] ?? 0),
-      difficulty: String(item['difficulty'] ?? ''),
-      tags: Array.isArray(item['tags']) ? item['tags'].join(', ') : '',
-      userId: String(item['userId'] ?? item['user'] ?? '')
+      name: item.name,
+      description: item.description,
+      city: item.city,
+      country: item.country,
+      distance: item.distance,
+      duration: item.duration,
+      difficulty: item.difficulty,
+      tags: item.tags.join(', '),
+      userId: item.userId
     });
 
     this.showRouteModal.set(true);
@@ -497,14 +451,14 @@ export class DataManagerPage implements OnInit {
 
     const form = this.routeForm();
 
-    const payload: Record<string, unknown> = {
+    const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
       city: form.city.trim(),
       country: form.country.trim(),
       distance: form.distance === null ? 0 : Number(form.distance),
       duration: form.duration === null ? 0 : Number(form.duration),
-      difficulty: form.difficulty.trim(),
+      difficulty: form.difficulty,
       tags: form.tags
         .split(',')
         .map(tag => tag.trim())
@@ -561,35 +515,20 @@ export class DataManagerPage implements OnInit {
 }
 
 onOpenEditPoint(id: string): void {
-  const item = this.items().find(point => point.id === id);
+  const item = this.items().find((point): point is PointItem => point.id === id);
 
   if (!item) return;
 
   this.editingPointId.set(id);
 
   this.pointForm.set({
-    name: String(item['name'] ?? ''),
-    description: String(item['description'] ?? ''),
-    latitude:
-      typeof item['latitude'] === 'number'
-        ? item['latitude']
-        : item['latitude'] != null && item['latitude'] !== ''
-          ? Number(item['latitude'])
-          : null,
-    longitude:
-      typeof item['longitude'] === 'number'
-        ? item['longitude']
-        : item['longitude'] != null && item['longitude'] !== ''
-          ? Number(item['longitude'])
-          : null,
-    image: String(item['image'] ?? ''),
-    routeId: String(item['routeId'] ?? item['route'] ?? ''),
-    index:
-      typeof item['index'] === 'number'
-        ? item['index']
-        : item['index'] != null && item['index'] !== ''
-          ? Number(item['index'])
-          : null
+    name: item.name,
+    description: item.description ?? '',
+    latitude: item.latitude,
+    longitude: item.longitude,
+    image: item.image ?? '',
+    routeId: item.routeId,
+    index: item.index
   });
 
   this.showPointModal.set(true);
@@ -614,7 +553,7 @@ onSubmitPoint(): void {
 
   const form = this.pointForm();
 
-  const payload: Record<string, unknown> = {
+  const payload = {
     name: form.name.trim(),
     description: form.description.trim(),
     latitude: form.latitude === null ? 0 : Number(form.latitude),
@@ -689,7 +628,8 @@ onSubmitPoint(): void {
   }
 
   onToggleEnabled(itemId: string): void {
-    const item = this.items().find(i => i.id === itemId);
+    const item = this.items().find((i): i is UserItem => i.id === itemId);
+
     if (item) {
       this.toggleEnabled(item);
     }
@@ -716,80 +656,17 @@ onSubmitPoint(): void {
   private loadItems(): void {
     this.loading.set(true);
 
-    const requestedPage = this.page();
-    const requestedLimit = this.limit();
+    const page = this.page();
+    const limit = this.limit();
 
-    this.dataService.getItems(this.selectedType(), requestedPage, requestedLimit).subscribe({
+    this.dataService.getItems(this.selectedType(), page, limit).subscribe({
       next: (response) => {
-        const normalizedResponse = response as unknown as PaginatedResponse<Record<string, unknown>> & Record<string, unknown>;
-
-        const rawItems = this.getArrayValue<Record<string, unknown>>(
-          [
-            normalizedResponse.data,
-            normalizedResponse['items'],
-            normalizedResponse['results'],
-            normalizedResponse['docs'],
-            this.getValueAtPath(normalizedResponse, ['pagination', 'data']),
-            this.getValueAtPath(normalizedResponse, ['meta', 'data'])
-          ],
-          []
-        );
-
-        const responseItems = this.normalizeItems(rawItems);
-
-        const responseTotal = this.getNumberValue(
-          [
-            normalizedResponse.total,
-            normalizedResponse['totalItems'],
-            normalizedResponse['totalCount'],
-            normalizedResponse['total_count'],
-            normalizedResponse['totalDocs'],
-            normalizedResponse['total_documents'],
-            this.getValueAtPath(normalizedResponse, ['pagination', 'total']),
-            this.getValueAtPath(normalizedResponse, ['pagination', 'totalItems']),
-            this.getValueAtPath(normalizedResponse, ['pagination', 'totalCount']),
-            this.getValueAtPath(normalizedResponse, ['meta', 'total']),
-            this.getValueAtPath(normalizedResponse, ['meta', 'totalItems']),
-            this.getValueAtPath(normalizedResponse, ['meta', 'totalCount'])
-          ],
-          undefined
-        );
-
-        const responseTotalPages = this.getNumberValue(
-          [
-            normalizedResponse.totalPages,
-            normalizedResponse['total_pages'],
-            normalizedResponse['pages'],
-            normalizedResponse['pageCount'],
-            this.getValueAtPath(normalizedResponse, ['pagination', 'totalPages']),
-            this.getValueAtPath(normalizedResponse, ['pagination', 'pages']),
-            this.getValueAtPath(normalizedResponse, ['meta', 'totalPages']),
-            this.getValueAtPath(normalizedResponse, ['meta', 'pageCount'])
-          ],
-          undefined
-        );
-
-        const hasKnownTotal = typeof responseTotal === 'number' && responseTotal > 0;
-        const hasMorePagesByHeuristic = responseItems.length === requestedLimit;
-
-        const normalizedTotal = hasKnownTotal
-          ? responseTotal
-          : ((requestedPage - 1) * requestedLimit) + responseItems.length + (hasMorePagesByHeuristic ? 1 : 0);
-
-        const normalizedTotalPages =
-          this.getNumberValue(
-            [responseTotalPages],
-            hasKnownTotal
-              ? Math.max(1, Math.ceil(normalizedTotal / Math.max(requestedLimit, 1)))
-              : (hasMorePagesByHeuristic ? requestedPage + 1 : requestedPage)
-          ) ?? 1;
-
-        this.allItems.set(responseItems);
+        this.allItems.set(response.data);
         this.applyLocalFilter();
-        this.page.set(Math.max(1, requestedPage));
-        this.limit.set(Math.max(1, requestedLimit));
-        this.total.set(Math.max(0, normalizedTotal));
-        this.totalPages.set(Math.max(1, normalizedTotalPages));
+        this.page.set(Math.max(1, response.page));
+        this.limit.set(Math.max(1, response.limit));
+        this.total.set(Math.max(0, response.total));
+        this.totalPages.set(Math.max(1, response.totalPages));
         this.loading.set(false);
       },
       error: (error) => {
@@ -801,26 +678,17 @@ onSubmitPoint(): void {
 
   private applyLocalFilter(): void {
     const term = this.searchTerm().trim().toLowerCase();
-    const type = this.selectedType();
     const sourceItems = this.allItems();
+    const searchConfig = this.currentTypeConfig().search;
 
-    if (!term || !this.showSearch()) {
+    if (!term || !searchConfig.enabled) {
       this.items.set(sourceItems);
       return;
     }
 
     const filteredItems = sourceItems.filter((item) => {
-      if (type === 'users') {
-        const name = this.valueToSearchText(item['name']);
-        return name.includes(term);
-      }
-
-      if (type === 'routes') {
-        const city = this.valueToSearchText(item['city']);
-        return city.includes(term);
-      }
-
-      return true;
+      const value = this.valueToSearchText(item[searchConfig.key]);
+      return value.includes(term);
     });
 
     this.items.set(filteredItems);
@@ -833,80 +701,16 @@ onSubmitPoint(): void {
     return '';
   }
 
-  private normalizeItems(values: Record<string, unknown>[]): BaseItem[] {
-    return values.map((value) => {
-      const id = this.getStringValue([value['_id']], '');
-      const name = this.getStringValue([value['name'], value['title'], value['label']], id);
-
-      return {
-        ...value,
-        id,
-        name
-      } as BaseItem;
-    });
-  }
-
-  private toggleEnabled(item: BaseItem): void {
+  private toggleEnabled(item: UserItem): void {
     if (this.selectedType() !== 'users') {
       return;
     }
 
-    const currentEnabled = item['enabled'];
-    if (typeof currentEnabled !== 'boolean') {
-      return;
-    }
-
-    this.dataService.updateItem(this.selectedType(), item.id, {
-      enabled: !currentEnabled
+    this.dataService.updateItem('users', item.id, {
+      enabled: !item.enabled
     }).subscribe({
       next: () => this.loadItems(),
       error: (error) => console.error('Toggle enabled error:', error)
     });
-  }
-
-  private getNumberValue(values: unknown[], fallback: number | undefined): number | undefined {
-    for (const value of values) {
-      const numberValue = typeof value === 'number' ? value : Number(value);
-      if (Number.isFinite(numberValue) && numberValue >= 0) {
-        return numberValue;
-      }
-    }
-    return fallback;
-  }
-
-  private getArrayValue<T>(values: unknown[], fallback: T[]): T[] {
-    for (const value of values) {
-      if (Array.isArray(value)) {
-        return value as T[];
-      }
-    }
-    return fallback;
-  }
-
-  private getStringValue(values: unknown[], fallback: string): string {
-    for (const value of values) {
-      if (typeof value === 'string' && value.trim().length > 0) {
-        return value;
-      }
-
-      if (typeof value === 'number' && Number.isFinite(value)) {
-        return String(value);
-      }
-    }
-    return fallback;
-  }
-
-  private getValueAtPath(source: unknown, path: string[]): unknown {
-    let current = source;
-
-    for (const key of path) {
-      if (typeof current !== 'object' || current === null || !(key in current)) {
-        return undefined;
-      }
-
-      current = (current as Record<string, unknown>)[key];
-    }
-
-    return current;
   }
 }

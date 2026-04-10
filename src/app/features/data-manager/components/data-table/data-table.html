@@ -67,6 +67,7 @@
             @if (!selectionMode) {
               <app-item-action-buttons
                 [item]="item"
+                [actionConfig]="actionConfig()"
                 (deleteClick)="onItemDelete($event)"
                 (toggleEnabledClick)="onItemToggleEnabled($event)"
                 (editClick)="onItemEdit($event)"

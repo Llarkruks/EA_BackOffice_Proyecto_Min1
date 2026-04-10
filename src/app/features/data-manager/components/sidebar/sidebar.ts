@@ -1,6 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ItemType, ItemTypeOption } from '../../../../core/models/item-type';
+import { ItemType, ItemTypeOption } from '../../../../core/models/items';
 
 @Component({
   selector: 'app-sidebar',

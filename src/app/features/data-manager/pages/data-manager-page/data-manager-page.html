@@ -48,6 +48,7 @@
       <app-data-table
         [items]="items()"
         [previewColumns]="currentPreviewColumns()"
+        [actionConfig]="currentActionConfig()"
         [selectedIds]="selectedIds()"
         (selectedIdsChange)="onSelectedIdsChange($event)"
         (deleteItem)="onDeleteItem($event)"
@@ -209,7 +210,7 @@
             <input
               type="text"
               [ngModel]="routeForm().difficulty"
-              (ngModelChange)="onRouteFieldChange('difficulty', $event)"
+              (ngModelChange)="onRouteFieldChange('difficulty', $any($event))"
               placeholder="easy / medium / hard"
             />
           </label>

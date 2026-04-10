@@ -1,6 +1,6 @@
 import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BaseItem } from '../../../../core/models/base-item';
+import { ItemActionConfig, ItemModelBase } from '../../../../core/models/items';
 import { DeleteItemActionButton } from './delete-item-action-button';
 import { ToggleEnabledActionButton } from './toggle-enabled-action-button';
 import { EditItemActionButton } from './edit-item-action-button';
@@ -16,11 +16,13 @@ import { EditItemActionButton } from './edit-item-action-button';
   ],
   template: `
     <div class="action-buttons">
-      <app-edit-item-action-button
-        [itemId]="item().id"
-        [inSelectionMode]="inSelectionMode()"
-        (editClick)="onEditClick($event)"
-      />
+      @if (showEdit()) {
+        <app-edit-item-action-button
+          [itemId]="item().id"
+          [inSelectionMode]="inSelectionMode()"
+          (editClick)="onEditClick($event)"
+        />
+      }
 
       @if (showToggleEnabled()) {
         <app-toggle-enabled-action-button
@@ -30,11 +32,13 @@ import { EditItemActionButton } from './edit-item-action-button';
         />
       }
 
-      <app-delete-item-action-button
-        [itemId]="item().id"
-        [inSelectionMode]="inSelectionMode()"
-        (deleteClick)="deleteClick.emit($event)"
-      />
+      @if (showDelete()) {
+        <app-delete-item-action-button
+          [itemId]="item().id"
+          [inSelectionMode]="inSelectionMode()"
+          (deleteClick)="deleteClick.emit($event)"
+        />
+      }
     </div>
   `,
   styles: [`
@@ -50,7 +54,12 @@ import { EditItemActionButton } from './edit-item-action-button';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ItemActionButtons {
-  readonly item = input.required<BaseItem>();
+  readonly item = input.required<ItemModelBase>();
+  readonly actionConfig = input<ItemActionConfig>({
+    edit: true,
+    delete: true,
+    toggleEnabled: false
+  });
   readonly inSelectionMode = input(false);
 
   readonly deleteClick = output<string>();
@@ -61,7 +70,15 @@ export class ItemActionButtons {
     this.editClick.emit(itemId);
   }
 
+  showEdit(): boolean {
+    return this.actionConfig().edit;
+  }
+
+  showDelete(): boolean {
+    return this.actionConfig().delete;
+  }
+
   showToggleEnabled(): boolean {
-    return typeof this.item()['enabled'] === 'boolean';
+    return this.actionConfig().toggleEnabled && typeof this.item()['enabled'] === 'boolean';
   }
 }
