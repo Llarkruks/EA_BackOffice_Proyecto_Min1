@@ -1,0 +1,20 @@
+<div class="searchbar">
+  <input
+    class="searchbar__input"
+    type="text"
+    [placeholder]="placeholder()"
+    [value]="value()"
+    (input)="onInput($event)"
+    aria-label="Search items"
+  />
+
+  @if (value().trim()) {
+    <button class="searchbar__button" type="button" (click)="clear()">
+      Clear
+    </button>
+  }
+
+  @if (searching()) {
+    <span class="searchbar__status">Searching...</span>
+  }
+</div>

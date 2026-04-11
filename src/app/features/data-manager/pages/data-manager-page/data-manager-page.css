@@ -1,12 +1,27 @@
 .data-manager-page {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
   background: #f8fafc;
 }
 
 .data-manager-page__content {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 24px;
+}
+
+.data-manager-page__search {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.data-manager-page__table {
+  display: block;
+  flex: 1;
+  min-height: 0;
 }
 
 .data-manager-page__loading {
@@ -27,48 +42,14 @@
 
 .modal {
   width: 100%;
-  max-width: 520px;
+  max-width: 760px;
+  max-height: calc(100vh - 48px);
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
   overflow: hidden;
-}
-
-.searchbar {
   display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.searchbar__input {
-  flex: 1;
-  min-width: 260px;
-  height: 44px;
-  padding: 0 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 12px;
-  outline: none;
-  font-size: 15px;
-  color: #111827;
-  background: #fff;
-}
-
-.searchbar__input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-
-.searchbar__button {
-  height: 44px;
-  padding: 0 16px;
-  border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  background: #e5e7eb;
-  color: #111827;
+  flex-direction: column;
 }
 
 
@@ -84,6 +65,11 @@
 }
 
 .modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -91,6 +77,8 @@
   display: grid;
   gap: 16px;
   padding: 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .modal__close {
@@ -104,6 +92,7 @@
 .form-field {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .form-field span {
@@ -114,8 +103,13 @@
 
 .form-field input[type='text'],
 .form-field input[type='email'],
-.form-field input[type='password'] {
+.form-field input[type='password'],
+.form-field input[type='number'],
+.form-field textarea,
+.form-field select {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border: 1px solid #d1d5db;
   border-radius: 10px;
   padding: 12px 14px;
@@ -123,9 +117,17 @@
   outline: none;
 }
 
+.form-field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
 .form-field input[type='text']:focus,
 .form-field input[type='email']:focus,
-.form-field input[type='password']:focus {
+.form-field input[type='password']:focus,
+.form-field input[type='number']:focus,
+.form-field textarea:focus,
+.form-field select:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }

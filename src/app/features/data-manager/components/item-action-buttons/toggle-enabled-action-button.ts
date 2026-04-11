@@ -56,7 +56,7 @@ export class ToggleEnabledActionButton {
   readonly toggleEnabledClick = output<string>();
 
   isEnabled(): boolean {
-    return this.item()['enabled'] !== false;
+    return this.item().enabled !== false;
   }
 
   enabledIcon(): string {
@@ -67,7 +67,7 @@ export class ToggleEnabledActionButton {
     event.stopPropagation();
 
     if (!this.inSelectionMode()) {
-      this.toggleEnabledClick.emit(this.item().id);
+      this.toggleEnabledClick.emit(this.item()._id);
     }
   }
 }

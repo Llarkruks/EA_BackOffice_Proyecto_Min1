@@ -2,7 +2,6 @@ export type RouteDifficulty = 'easy' | 'medium' | 'hard';
 
 export interface RouteItem {
   _id: string;
-  id: string;
   name: string;
   description: string;
   city: string;
@@ -14,7 +13,7 @@ export interface RouteItem {
   userId: string;
   createdAt?: string;
   updatedAt?: string;
-  [key: string]: unknown;
+  // [key: string]: unknown; // Uncomment if you want to allow additional properties
 }
 
 export interface CreateRoutePayload {

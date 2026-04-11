@@ -17,9 +17,8 @@ export type { RouteDifficulty } from './Route';
 
 export interface ItemModelBase {
   _id: string;
-  id: string;
   name: string;
-  [key: string]: unknown;
+  enabled?: boolean;
 }
 
 export interface ItemModelByType {
@@ -59,6 +58,7 @@ export interface ItemUiConfig {
   previewColumns: ItemPreviewColumn[];
   actions: ItemActionConfig;
   search: ItemSearchConfig;
+  editableFields: string[];
 }
 
 export interface CreatePayloadByType {
@@ -92,7 +92,8 @@ export const ITEM_UI_CONFIG: Record<ItemType, ItemUiConfig> = {
       enabled: true,
       key: 'name',
       placeholder: 'Search users by name...'
-    }
+    },
+    editableFields: ['name', 'surname', 'username', 'email', 'password', 'enabled', 'role']
   },
   routes: {
     label: 'Routes',
@@ -110,7 +111,8 @@ export const ITEM_UI_CONFIG: Record<ItemType, ItemUiConfig> = {
       enabled: true,
       key: 'city',
       placeholder: 'Search routes by city...'
-    }
+    },
+    editableFields: ['name', 'description', 'city', 'country', 'distance', 'duration', 'difficulty', 'tags', 'userId']
   },
   points: {
     label: 'Points',
@@ -130,7 +132,8 @@ export const ITEM_UI_CONFIG: Record<ItemType, ItemUiConfig> = {
       enabled: false,
       key: '',
       placeholder: 'Search...'
-    }
+    },
+    editableFields: ['name', 'description', 'latitude', 'longitude', 'image', 'routeId', 'index']
   }
 };
 
@@ -167,7 +170,6 @@ function normalizeUser(value: Record<string, unknown>): UserItem {
   return {
     ...value,
     _id: id,
-    id,
     name: getStringValue([value['name']], id),
     surname: getStringValue([value['surname']], ''),
     username: getStringValue([value['username']], ''),
@@ -183,7 +185,6 @@ function normalizeRoute(value: Record<string, unknown>): RouteItem {
   return {
     ...value,
     _id: id,
-    id,
     name: getStringValue([value['name']], id),
     description: getStringValue([value['description']], ''),
     city: getStringValue([value['city']], ''),
@@ -202,7 +203,6 @@ function normalizePoint(value: Record<string, unknown>): PointItem {
   return {
     ...value,
     _id: id,
-    id,
     name: getStringValue([value['name']], id),
     description: getStringValue([value['description']], ''),
     latitude: getNumberValue([value['latitude']], 0),

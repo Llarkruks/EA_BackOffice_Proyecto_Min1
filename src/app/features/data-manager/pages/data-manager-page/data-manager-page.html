@@ -9,52 +9,40 @@
     />
 
     <div class="data-manager-page__content">
-      @if (showSearch()) {
-      <div class="searchbar">
-        <input
-          class="searchbar__input"
-          type="text"
-          [placeholder]="searchPlaceholder()"
-          [value]="searchTerm()"
-          (input)="onSearchInput($event)"
-        />
+      <app-search-bar
+        class="data-manager-page__search"
+        [placeholder]="searchPlaceholder()"
+        [value]="searchTerm()"
+        [searching]="searching()"
+        (valueChange)="onSearchTermChange($event)"
+      />
 
-        @if (searchTerm().trim()) {
-          <button class="searchbar__button" type="button" (click)="clearSearch()">
-            Clear
-          </button>
-        }
-
-        @if (searching()) {
-          <span class="searchbar__status">Searching...</span>
-        }
-      </div>
-    }
-
-      @if (!isGlobalSearching()) {
-        <app-pagination
-          [page]="page()"
-          [limit]="limit()"
-          [total]="total()"
-          [totalPages]="totalPages()"
-          [canAddItem]="canAddCurrentType()"
-          [addButtonLabel]="addButtonLabel()"
-          (pageChange)="onPageChange($event)"
-          (limitChange)="onLimitChange($event)"
-          (addItemClick)="onOpenAddItem()"
-        />
-      }
+      <app-pagination
+        [page]="page()"
+        [limit]="limit()"
+        [total]="total()"
+        [totalPages]="totalPages()"
+        (pageChange)="onPageChange($event)"
+        (limitChange)="onLimitChange($event)"
+      />
 
       <app-data-table
+        class="data-manager-page__table"
         [items]="items()"
         [previewColumns]="currentPreviewColumns()"
         [actionConfig]="currentActionConfig()"
+        [editableFields]="currentEditableFields()"
         [selectedIds]="selectedIds()"
+        [canAddItem]="canAddCurrentType()"
+        [addButtonLabel]="addButtonLabel()"
+        [inlineEditSavingItemId]="inlineEditSavingItemId()"
+        [inlineEditCompletedItemId]="inlineEditCompletedItemId()"
         (selectedIdsChange)="onSelectedIdsChange($event)"
         (deleteItem)="onDeleteItem($event)"
         (deleteMany)="onDeleteMany($event)"
         (toggleEnabled)="onToggleEnabled($event)"
-        (editItem)="onOpenEditItem($event)"
+        (addItemClick)="onOpenAddItem()"
+        (inlineEditSubmit)="onInlineEditSubmit($event)"
       />
     </div>
   </section>
@@ -64,7 +52,7 @@
       <div class="modal" (click)="$event.stopPropagation()">
         <div class="modal__header">
           <h2>{{ modalTitle() }}</h2>
-          <button type="button" class="modal__close" (click)="onCloseUserModal()">×</button>
+          <button type="button" class="modal__close" [disabled]="savingUser()" (click)="onCloseUserModal()">×</button>
         </div>
 
         <div class="modal__body">
@@ -105,6 +93,17 @@
           </label>
 
           <label class="form-field">
+            <span>Role</span>
+            <select
+              [ngModel]="userForm().role"
+              (ngModelChange)="onUserFieldChange('role', $event)"
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+
+          <label class="form-field">
             <span>Password</span>
             <input
               type="password"
@@ -125,7 +124,7 @@
         </div>
 
         <div class="modal__footer">
-          <button type="button" class="btn btn--secondary" (click)="onCloseUserModal()">
+          <button type="button" class="btn btn--secondary" [disabled]="savingUser()" (click)="onCloseUserModal()">
             Cancel
           </button>
 
@@ -147,7 +146,7 @@
       <div class="modal" (click)="$event.stopPropagation()">
         <div class="modal__header">
           <h2>{{ routeModalTitle() }}</h2>
-          <button type="button" class="modal__close" (click)="onCloseRouteModal()">×</button>
+          <button type="button" class="modal__close" [disabled]="savingRoute()" (click)="onCloseRouteModal()">×</button>
         </div>
 
         <div class="modal__body">
@@ -236,7 +235,7 @@
         </div>
 
         <div class="modal__footer">
-          <button type="button" class="btn btn--secondary" (click)="onCloseRouteModal()">
+          <button type="button" class="btn btn--secondary" [disabled]="savingRoute()" (click)="onCloseRouteModal()">
             Cancel
           </button>
 
@@ -258,7 +257,7 @@
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal__header">
         <h2>{{ pointModalTitle() }}</h2>
-        <button type="button" class="modal__close" (click)="onClosePointModal()">×</button>
+        <button type="button" class="modal__close" [disabled]="savingPoint()" (click)="onClosePointModal()">×</button>
       </div>
 
       <div class="modal__body">
@@ -328,7 +327,7 @@
       </div>
 
       <div class="modal__footer">
-        <button type="button" class="btn btn--secondary" (click)="onClosePointModal()">
+        <button type="button" class="btn btn--secondary" [disabled]="savingPoint()" (click)="onClosePointModal()">
           Cancel
         </button>
 

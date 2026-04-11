@@ -13,12 +13,8 @@ export class Pagination {
   readonly total = input(0);
   readonly totalPages = input(0);
 
-  readonly canAddItem = input(false);
-  readonly addButtonLabel = input('Add item');
-
   readonly pageChange = output<number>();
   readonly limitChange = output<number>();
-  readonly addItemClick = output<void>();
 
   readonly pageSizeOptions = [10, 25, 50];
 
@@ -49,10 +45,6 @@ export class Pagination {
   onLimitChange(event: Event): void {
     const value = Number((event.target as HTMLSelectElement).value);
     this.limitChange.emit(value);
-  }
-
-  onAddItem(): void {
-    this.addItemClick.emit();
   }
 
   get startItem(): number {

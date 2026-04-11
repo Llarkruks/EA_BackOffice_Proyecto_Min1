@@ -4,8 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Sidebar } from '../../components/sidebar/sidebar';
 import { DataTable } from '../../components/data-table/data-table';
 import { Pagination } from '../../components/pagination/pagination';
+import { SearchBar } from '../../components/search-bar/search-bar';
 import { DataService } from '../../../../core/services/data';
 import {
+  CreatePointPayload,
+  CreateRoutePayload,
+  CreateUserPayload,
   ITEM_TYPE_OPTIONS,
   ITEM_UI_CONFIG,
   ItemActionConfig,
@@ -16,6 +20,9 @@ import {
   PointItem,
   RouteItem,
   RouteDifficulty,
+  UpdatePointPayload,
+  UpdateRoutePayload,
+  UpdateUserPayload,
   UserItem
 } from '../../../../core/models/items';
 
@@ -26,6 +33,7 @@ type UserFormValue = {
   email: string;
   password: string;
   enabled: boolean;
+  role: UserItem['role'];
 };
 
 type RouteFormValue = {
@@ -52,7 +60,7 @@ type PointFormValue = {
 
 @Component({
   selector: 'app-data-manager-page',
-  imports: [CommonModule, FormsModule, Sidebar, DataTable, Pagination],
+  imports: [CommonModule, FormsModule, Sidebar, DataTable, Pagination, SearchBar],
   templateUrl: './data-manager-page.html',
   styleUrl: './data-manager-page.css'
 })
@@ -89,6 +97,8 @@ export class DataManagerPage implements OnInit {
 
 
   searching = signal(false);
+  inlineEditSavingItemId = signal<string | null>(null);
+  inlineEditCompletedItemId = signal<string | null>(null);
 
   userForm = signal<UserFormValue>({
     name: '',
@@ -96,7 +106,8 @@ export class DataManagerPage implements OnInit {
     username: '',
     email: '',
     password: '',
-    enabled: true
+    enabled: true,
+    role: 'user'
   });
 
   routeForm = signal<RouteFormValue>({
@@ -137,12 +148,13 @@ export class DataManagerPage implements OnInit {
     return this.currentTypeConfig().actions;
   });
 
-  readonly showSearch = computed(() => {
-    return this.currentTypeConfig().search.enabled;
+  readonly currentEditableFields = computed(() => {
+    return this.currentTypeConfig().editableFields;
   });
 
   readonly searchPlaceholder = computed(() => {
-    return this.currentTypeConfig().search.placeholder;
+    const firstColumn = this.currentPreviewColumns()[0];
+    return firstColumn ? `Search by ${firstColumn.label.toLowerCase()}...` : 'Search...';
   });
 
   readonly isUsersType = computed(() => this.selectedType() === 'users');
@@ -167,7 +179,7 @@ export class DataManagerPage implements OnInit {
   });
 
   readonly addButtonLabel = computed(() => {
-    return this.currentTypeConfig().addButtonLabel;
+    return 'Add';
   });
 
   ngOnInit(): void {
@@ -208,24 +220,25 @@ export class DataManagerPage implements OnInit {
     this.loadItems();
   }
 
-  onSearchInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
+  onSearchTermChange(value: string): void {
     this.searchTerm.set(value);
 
-    if (this.showSearch()) {
-      this.searchAcrossAllPages();
+    if (!value.trim()) {
+      this.isGlobalSearching.set(false);
+      this.searching.set(false);
+      this.loadItems();
       return;
     }
 
-    this.applyLocalFilter();
+    this.searchAcrossAllPages();
   }
 
   private searchAcrossAllPages(): void {
     const term = this.searchTerm().trim().toLowerCase();
-    const searchConfig = this.currentTypeConfig().search;
+    const searchKey = this.getSearchKey();
     const itemType = this.selectedType();
 
-    if (!searchConfig.enabled || !term) {
+    if (!term || !searchKey) {
       this.isGlobalSearching.set(false);
       this.searching.set(false);
       this.loadItems();
@@ -238,7 +251,7 @@ export class DataManagerPage implements OnInit {
     this.dataService.getAllItems(itemType, 50).subscribe({
       next: (allItems) => {
         const filteredItems = allItems.filter((item) => {
-          const value = this.valueToSearchText(item[searchConfig.key]);
+          const value = this.valueToSearchText(this.getItemValueByKey(item, searchKey));
           return value.includes(term);
         });
 
@@ -303,13 +316,14 @@ export class DataManagerPage implements OnInit {
       username: '',
       email: '',
       password: '',
-      enabled: true
+      enabled: true,
+      role: 'user'
     });
     this.showUserModal.set(true);
   }
 
   onOpenEditUser(id: string): void {
-    const item = this.items().find((user): user is UserItem => user.id === id);
+    const item = this.items().find((user): user is UserItem => user._id === id);
     if (!item) return;
 
     this.editingUserId.set(id);
@@ -319,7 +333,8 @@ export class DataManagerPage implements OnInit {
       username: item.username,
       email: item.email,
       password: '',
-      enabled: item.enabled
+      enabled: item.enabled,
+      role: item.role
     });
     this.showUserModal.set(true);
   }
@@ -332,6 +347,10 @@ export class DataManagerPage implements OnInit {
   }
 
   onCloseUserModal(): void {
+    if (this.savingUser()) {
+      return;
+    }
+
     this.closeUserModal();
   }
 
@@ -341,19 +360,13 @@ export class DataManagerPage implements OnInit {
     const form = this.userForm();
 
     if (this.isEditingUser()) {
-      const updatePayload: {
-        name: string;
-        surname: string;
-        username: string;
-        email: string;
-        enabled: boolean;
-        password?: string;
-      } = {
+      const updatePayload: UpdateUserPayload = {
         name: form.name.trim(),
         surname: form.surname.trim(),
         username: form.username.trim(),
         email: form.email.trim(),
-        enabled: form.enabled
+        enabled: form.enabled,
+        role: form.role
       };
 
       if (form.password.trim()) {
@@ -376,12 +389,14 @@ export class DataManagerPage implements OnInit {
       return;
     }
 
-    const createPayload = {
+    const createPayload: CreateUserPayload = {
       name: form.name.trim(),
       surname: form.surname.trim(),
       username: form.username.trim(),
       email: form.email.trim(),
-      password: form.password.trim()
+      password: form.password.trim(),
+      enabled: form.enabled,
+      role: form.role
     };
 
     this.savingUser.set(true);
@@ -416,7 +431,7 @@ export class DataManagerPage implements OnInit {
   }
 
   onOpenEditRoute(id: string): void {
-    const item = this.items().find((route): route is RouteItem => route.id === id);
+    const item = this.items().find((route): route is RouteItem => route._id === id);
     if (!item) return;
 
     this.editingRouteId.set(id);
@@ -443,6 +458,10 @@ export class DataManagerPage implements OnInit {
   }
 
   onCloseRouteModal(): void {
+    if (this.savingRoute()) {
+      return;
+    }
+
     this.closeRouteModal();
   }
 
@@ -451,7 +470,7 @@ export class DataManagerPage implements OnInit {
 
     const form = this.routeForm();
 
-    const payload = {
+    const payload: CreateRoutePayload = {
       name: form.name.trim(),
       description: form.description.trim(),
       city: form.city.trim(),
@@ -515,7 +534,7 @@ export class DataManagerPage implements OnInit {
 }
 
 onOpenEditPoint(id: string): void {
-  const item = this.items().find((point): point is PointItem => point.id === id);
+  const item = this.items().find((point): point is PointItem => point._id === id);
 
   if (!item) return;
 
@@ -545,6 +564,10 @@ onPointFieldChange<K extends keyof PointFormValue>(
 }
 
 onClosePointModal(): void {
+  if (this.savingPoint()) {
+    return;
+  }
+
   this.closePointModal();
 }
 
@@ -553,7 +576,7 @@ onSubmitPoint(): void {
 
   const form = this.pointForm();
 
-  const payload = {
+  const payload: CreatePointPayload = {
     name: form.name.trim(),
     description: form.description.trim(),
     latitude: form.latitude === null ? 0 : Number(form.latitude),
@@ -627,8 +650,67 @@ onSubmitPoint(): void {
     this.selectedIds.set(ids);
   }
 
+  onInlineEditSubmit(event: { itemId: string; changes: Record<string, string> }): void {
+    const { itemId, changes } = event;
+
+    if (Object.keys(changes).length === 0) {
+      this.inlineEditCompletedItemId.set(itemId);
+      return;
+    }
+
+    this.inlineEditSavingItemId.set(itemId);
+    this.inlineEditCompletedItemId.set(null);
+
+    const type = this.selectedType();
+
+    if (type === 'users') {
+      const payload = this.buildUserInlineUpdatePayload(changes);
+      this.dataService.updateItem('users', itemId, payload).subscribe({
+        next: () => {
+          this.inlineEditSavingItemId.set(null);
+          this.inlineEditCompletedItemId.set(itemId);
+          this.loadItems();
+        },
+        error: (error) => {
+          console.error('Inline edit user error:', error);
+          this.inlineEditSavingItemId.set(null);
+        }
+      });
+      return;
+    }
+
+    if (type === 'routes') {
+      const payload = this.buildRouteInlineUpdatePayload(changes);
+      this.dataService.updateItem('routes', itemId, payload).subscribe({
+        next: () => {
+          this.inlineEditSavingItemId.set(null);
+          this.inlineEditCompletedItemId.set(itemId);
+          this.loadItems();
+        },
+        error: (error) => {
+          console.error('Inline edit route error:', error);
+          this.inlineEditSavingItemId.set(null);
+        }
+      });
+      return;
+    }
+
+    const payload = this.buildPointInlineUpdatePayload(changes);
+    this.dataService.updateItem('points', itemId, payload).subscribe({
+      next: () => {
+        this.inlineEditSavingItemId.set(null);
+        this.inlineEditCompletedItemId.set(itemId);
+        this.loadItems();
+      },
+      error: (error) => {
+        console.error('Inline edit point error:', error);
+        this.inlineEditSavingItemId.set(null);
+      }
+    });
+  }
+
   onToggleEnabled(itemId: string): void {
-    const item = this.items().find((i): i is UserItem => i.id === itemId);
+    const item = this.items().find((i): i is UserItem => i._id === itemId);
 
     if (item) {
       this.toggleEnabled(item);
@@ -679,19 +761,28 @@ onSubmitPoint(): void {
   private applyLocalFilter(): void {
     const term = this.searchTerm().trim().toLowerCase();
     const sourceItems = this.allItems();
-    const searchConfig = this.currentTypeConfig().search;
+    const searchKey = this.getSearchKey();
 
-    if (!term || !searchConfig.enabled) {
+    if (!term || !searchKey) {
       this.items.set(sourceItems);
       return;
     }
 
     const filteredItems = sourceItems.filter((item) => {
-      const value = this.valueToSearchText(item[searchConfig.key]);
+      const value = this.valueToSearchText(this.getItemValueByKey(item, searchKey));
       return value.includes(term);
     });
 
     this.items.set(filteredItems);
+  }
+
+  private getSearchKey(): string {
+    const firstColumn = this.currentPreviewColumns()[0];
+    return firstColumn?.key ?? '';
+  }
+
+  private getItemValueByKey(item: ItemModel, key: string): unknown {
+    return (item as unknown as Record<string, unknown>)[key];
   }
 
   private valueToSearchText(value: unknown): string {
@@ -706,11 +797,80 @@ onSubmitPoint(): void {
       return;
     }
 
-    this.dataService.updateItem('users', item.id, {
+    this.dataService.updateItem('users', item._id, {
       enabled: !item.enabled
     }).subscribe({
       next: () => this.loadItems(),
       error: (error) => console.error('Toggle enabled error:', error)
     });
+  }
+
+  private buildUserInlineUpdatePayload(changes: Record<string, string>): UpdateUserPayload {
+    const payload: UpdateUserPayload = {};
+
+    if ('name' in changes) payload.name = changes['name'].trim();
+    if ('surname' in changes) payload.surname = changes['surname'].trim();
+    if ('username' in changes) payload.username = changes['username'].trim();
+    if ('email' in changes) payload.email = changes['email'].trim();
+    if ('enabled' in changes) payload.enabled = changes['enabled'].trim().toLowerCase() === 'true';
+    if ('role' in changes) payload.role = changes['role'].trim().toLowerCase() === 'admin' ? 'admin' : 'user';
+    if ('password' in changes && changes['password'].trim().length > 0) {
+      payload.password = changes['password'].trim();
+    }
+
+    return payload;
+  }
+
+  private buildRouteInlineUpdatePayload(changes: Record<string, string>): UpdateRoutePayload {
+    const payload: UpdateRoutePayload = {};
+
+    if ('name' in changes) payload.name = changes['name'].trim();
+    if ('description' in changes) payload.description = changes['description'].trim();
+    if ('city' in changes) payload.city = changes['city'].trim();
+    if ('country' in changes) payload.country = changes['country'].trim();
+    if ('distance' in changes) {
+      const value = Number(changes['distance']);
+      if (Number.isFinite(value)) payload.distance = value;
+    }
+    if ('duration' in changes) {
+      const value = Number(changes['duration']);
+      if (Number.isFinite(value)) payload.duration = value;
+    }
+    if ('difficulty' in changes) {
+      const difficulty = changes['difficulty'].trim().toLowerCase();
+      payload.difficulty = difficulty === 'medium' || difficulty === 'hard' ? difficulty : 'easy';
+    }
+    if ('tags' in changes) {
+      payload.tags = changes['tags']
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+    }
+    if ('userId' in changes) payload.userId = changes['userId'].trim();
+
+    return payload;
+  }
+
+  private buildPointInlineUpdatePayload(changes: Record<string, string>): UpdatePointPayload {
+    const payload: UpdatePointPayload = {};
+
+    if ('name' in changes) payload.name = changes['name'].trim();
+    if ('description' in changes) payload.description = changes['description'].trim();
+    if ('latitude' in changes) {
+      const value = Number(changes['latitude']);
+      if (Number.isFinite(value)) payload.latitude = value;
+    }
+    if ('longitude' in changes) {
+      const value = Number(changes['longitude']);
+      if (Number.isFinite(value)) payload.longitude = value;
+    }
+    if ('image' in changes) payload.image = changes['image'].trim();
+    if ('routeId' in changes) payload.routeId = changes['routeId'].trim();
+    if ('index' in changes) {
+      const value = Number(changes['index']);
+      if (Number.isFinite(value)) payload.index = value;
+    }
+
+    return payload;
   }
 }

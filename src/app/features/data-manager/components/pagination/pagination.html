@@ -1,5 +1,6 @@
-@if (total() > 0) {
-  <div class="pagination">
+<div class="pagination">
+  @if (total() > 0) {
+    <div class="pagination__row">
     <div class="pagination__info">
       <span class="pagination__range">
         Showing <strong>{{ startItem }}</strong> - <strong>{{ endItem }}</strong> of <strong>{{ total() }}</strong>
@@ -20,16 +21,6 @@
         </select>
       </label>
 
-      @if (canAddItem()) {
-        <button
-          type="button"
-          class="pagination__button pagination__button--add"
-          (click)="onAddItem()"
-        >
-          {{ addButtonLabel() }}
-        </button>
-      }
-
       <button
         type="button"
         class="pagination__button"
@@ -48,5 +39,6 @@
         Next
       </button>
     </div>
-  </div>
-}
+    </div>
+  }
+</div>

@@ -18,7 +18,7 @@ import { EditItemActionButton } from './edit-item-action-button';
     <div class="action-buttons">
       @if (showEdit()) {
         <app-edit-item-action-button
-          [itemId]="item().id"
+          [itemId]="item()._id"
           [inSelectionMode]="inSelectionMode()"
           (editClick)="onEditClick($event)"
         />
@@ -34,7 +34,7 @@ import { EditItemActionButton } from './edit-item-action-button';
 
       @if (showDelete()) {
         <app-delete-item-action-button
-          [itemId]="item().id"
+          [itemId]="item()._id"
           [inSelectionMode]="inSelectionMode()"
           (deleteClick)="deleteClick.emit($event)"
         />
@@ -79,6 +79,6 @@ export class ItemActionButtons {
   }
 
   showToggleEnabled(): boolean {
-    return this.actionConfig().toggleEnabled && typeof this.item()['enabled'] === 'boolean';
+    return this.actionConfig().toggleEnabled && typeof this.item().enabled === 'boolean';
   }
 }
