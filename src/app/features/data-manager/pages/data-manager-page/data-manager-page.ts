@@ -1,10 +1,12 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Sidebar } from '../../components/sidebar/sidebar';
 import { DataTable } from '../../components/data-table/data-table';
 import { Pagination } from '../../components/pagination/pagination';
 import { SearchBar } from '../../components/search-bar/search-bar';
+import { UserFormModal } from '../../components/create-forms/user-form-modal/user-form-modal';
+import { RouteFormModal } from '../../components/create-forms/route-form-modal/route-form-modal';
+import { PointFormModal } from '../../components/create-forms/point-form-modal/point-form-modal';
 import { DataService } from '../../../../core/services/data';
 import {
   CreatePointPayload,
@@ -19,48 +21,28 @@ import {
   ItemUiConfig,
   PointItem,
   RouteItem,
-  RouteDifficulty,
-  UpdatePointPayload,
-  UpdateRoutePayload,
   UpdateUserPayload,
   UserItem
 } from '../../../../core/models/items';
-
-type UserFormValue = {
-  name: string;
-  surname: string;
-  username: string;
-  email: string;
-  password: string;
-  enabled: boolean;
-  role: UserItem['role'];
-};
-
-type RouteFormValue = {
-  name: string;
-  description: string;
-  city: string;
-  country: string;
-  distance: number | null;
-  duration: number | null;
-  difficulty: RouteDifficulty;
-  tags: string;
-  userId: string;
-};
-
-type PointFormValue = {
-  name: string;
-  description: string;
-  latitude: number | null;
-  longitude: number | null;
-  image: string;
-  routeId: string;
-  index: number | null;
-};
+import { PointFormValue, RouteFormValue, UserFormValue } from '../../models/forms';
+import {
+  buildPointInlineUpdatePayload,
+  buildRouteInlineUpdatePayload,
+  buildUserInlineUpdatePayload
+} from '../../utils/inline-edit-payloads';
 
 @Component({
   selector: 'app-data-manager-page',
-  imports: [CommonModule, FormsModule, Sidebar, DataTable, Pagination, SearchBar],
+  imports: [
+    CommonModule,
+    Sidebar,
+    DataTable,
+    Pagination,
+    SearchBar,
+    UserFormModal,
+    RouteFormModal,
+    PointFormModal
+  ],
   templateUrl: './data-manager-page.html',
   styleUrl: './data-manager-page.css'
 })
@@ -664,7 +646,7 @@ onSubmitPoint(): void {
     const type = this.selectedType();
 
     if (type === 'users') {
-      const payload = this.buildUserInlineUpdatePayload(changes);
+      const payload = buildUserInlineUpdatePayload(changes);
       this.dataService.updateItem('users', itemId, payload).subscribe({
         next: () => {
           this.inlineEditSavingItemId.set(null);
@@ -680,7 +662,7 @@ onSubmitPoint(): void {
     }
 
     if (type === 'routes') {
-      const payload = this.buildRouteInlineUpdatePayload(changes);
+      const payload = buildRouteInlineUpdatePayload(changes);
       this.dataService.updateItem('routes', itemId, payload).subscribe({
         next: () => {
           this.inlineEditSavingItemId.set(null);
@@ -695,7 +677,7 @@ onSubmitPoint(): void {
       return;
     }
 
-    const payload = this.buildPointInlineUpdatePayload(changes);
+    const payload = buildPointInlineUpdatePayload(changes);
     this.dataService.updateItem('points', itemId, payload).subscribe({
       next: () => {
         this.inlineEditSavingItemId.set(null);
@@ -803,74 +785,5 @@ onSubmitPoint(): void {
       next: () => this.loadItems(),
       error: (error) => console.error('Toggle enabled error:', error)
     });
-  }
-
-  private buildUserInlineUpdatePayload(changes: Record<string, string>): UpdateUserPayload {
-    const payload: UpdateUserPayload = {};
-
-    if ('name' in changes) payload.name = changes['name'].trim();
-    if ('surname' in changes) payload.surname = changes['surname'].trim();
-    if ('username' in changes) payload.username = changes['username'].trim();
-    if ('email' in changes) payload.email = changes['email'].trim();
-    if ('enabled' in changes) payload.enabled = changes['enabled'].trim().toLowerCase() === 'true';
-    if ('role' in changes) payload.role = changes['role'].trim().toLowerCase() === 'admin' ? 'admin' : 'user';
-    if ('password' in changes && changes['password'].trim().length > 0) {
-      payload.password = changes['password'].trim();
-    }
-
-    return payload;
-  }
-
-  private buildRouteInlineUpdatePayload(changes: Record<string, string>): UpdateRoutePayload {
-    const payload: UpdateRoutePayload = {};
-
-    if ('name' in changes) payload.name = changes['name'].trim();
-    if ('description' in changes) payload.description = changes['description'].trim();
-    if ('city' in changes) payload.city = changes['city'].trim();
-    if ('country' in changes) payload.country = changes['country'].trim();
-    if ('distance' in changes) {
-      const value = Number(changes['distance']);
-      if (Number.isFinite(value)) payload.distance = value;
-    }
-    if ('duration' in changes) {
-      const value = Number(changes['duration']);
-      if (Number.isFinite(value)) payload.duration = value;
-    }
-    if ('difficulty' in changes) {
-      const difficulty = changes['difficulty'].trim().toLowerCase();
-      payload.difficulty = difficulty === 'medium' || difficulty === 'hard' ? difficulty : 'easy';
-    }
-    if ('tags' in changes) {
-      payload.tags = changes['tags']
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean);
-    }
-    if ('userId' in changes) payload.userId = changes['userId'].trim();
-
-    return payload;
-  }
-
-  private buildPointInlineUpdatePayload(changes: Record<string, string>): UpdatePointPayload {
-    const payload: UpdatePointPayload = {};
-
-    if ('name' in changes) payload.name = changes['name'].trim();
-    if ('description' in changes) payload.description = changes['description'].trim();
-    if ('latitude' in changes) {
-      const value = Number(changes['latitude']);
-      if (Number.isFinite(value)) payload.latitude = value;
-    }
-    if ('longitude' in changes) {
-      const value = Number(changes['longitude']);
-      if (Number.isFinite(value)) payload.longitude = value;
-    }
-    if ('image' in changes) payload.image = changes['image'].trim();
-    if ('routeId' in changes) payload.routeId = changes['routeId'].trim();
-    if ('index' in changes) {
-      const value = Number(changes['index']);
-      if (Number.isFinite(value)) payload.index = value;
-    }
-
-    return payload;
   }
 }

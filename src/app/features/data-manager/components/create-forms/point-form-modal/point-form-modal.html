@@ -1,0 +1,55 @@
+@if (open()) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>{{ title() }}</h2>
+        <button type="button" class="modal__close" [disabled]="saving()" (click)="onClose()">×</button>
+      </div>
+
+      <div class="modal__body">
+        <label class="form-field">
+          <span>Name</span>
+          <input type="text" [ngModel]="form().name" (ngModelChange)="onTextFieldChange('name', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Description</span>
+          <textarea [ngModel]="form().description" (ngModelChange)="onTextFieldChange('description', $event)"></textarea>
+        </label>
+
+        <label class="form-field">
+          <span>Latitude</span>
+          <input type="number" step="any" [ngModel]="form().latitude" (ngModelChange)="onNumberFieldChange('latitude', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Longitude</span>
+          <input type="number" step="any" [ngModel]="form().longitude" (ngModelChange)="onNumberFieldChange('longitude', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Image</span>
+          <input type="text" [ngModel]="form().image" (ngModelChange)="onTextFieldChange('image', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Route ID</span>
+          <input type="text" [ngModel]="form().routeId" (ngModelChange)="onTextFieldChange('routeId', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Index</span>
+          <input type="number" [ngModel]="form().index" (ngModelChange)="onNumberFieldChange('index', $event)" />
+        </label>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" [disabled]="saving()" (click)="onClose()">Cancel</button>
+
+        <button type="button" class="btn btn--primary" [disabled]="saving()" (click)="onSubmit()">
+          {{ saving() ? 'Saving...' : (isEditing() ? 'Save changes' : 'Create point') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

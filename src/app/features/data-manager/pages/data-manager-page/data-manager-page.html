@@ -46,301 +46,36 @@
       />
     </div>
   </section>
+  <app-user-form-modal
+    [open]="showUserModal()"
+    [title]="modalTitle()"
+    [form]="userForm()"
+    [saving]="savingUser()"
+    [isEditing]="isEditingUser()"
+    (close)="onCloseUserModal()"
+    (submit)="onSubmitUser()"
+    (fieldChange)="onUserFieldChange($event.key, $event.value)"
+  />
 
-  @if (showUserModal()) {
-    <div class="modal-backdrop" (click)="onCloseUserModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal__header">
-          <h2>{{ modalTitle() }}</h2>
-          <button type="button" class="modal__close" [disabled]="savingUser()" (click)="onCloseUserModal()">×</button>
-        </div>
+  <app-route-form-modal
+    [open]="showRouteModal()"
+    [title]="routeModalTitle()"
+    [form]="routeForm()"
+    [saving]="savingRoute()"
+    [isEditing]="isEditingRoute()"
+    (close)="onCloseRouteModal()"
+    (submit)="onSubmitRoute()"
+    (fieldChange)="onRouteFieldChange($event.key, $event.value)"
+  />
 
-        <div class="modal__body">
-          <label class="form-field">
-            <span>Name</span>
-            <input
-              type="text"
-              [ngModel]="userForm().name"
-              (ngModelChange)="onUserFieldChange('name', $event)"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Surname</span>
-            <input
-              type="text"
-              [ngModel]="userForm().surname"
-              (ngModelChange)="onUserFieldChange('surname', $event)"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Username</span>
-            <input
-              type="text"
-              [ngModel]="userForm().username"
-              (ngModelChange)="onUserFieldChange('username', $event)"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Email</span>
-            <input
-              type="email"
-              [ngModel]="userForm().email"
-              (ngModelChange)="onUserFieldChange('email', $event)"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Role</span>
-            <select
-              [ngModel]="userForm().role"
-              (ngModelChange)="onUserFieldChange('role', $event)"
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-          </label>
-
-          <label class="form-field">
-            <span>Password</span>
-            <input
-              type="password"
-              [ngModel]="userForm().password"
-              (ngModelChange)="onUserFieldChange('password', $event)"
-              [placeholder]="isEditingUser() ? 'Leave empty to keep current password' : 'Enter password'"
-            />
-          </label>
-
-          <label class="form-field form-field--checkbox">
-            <input
-              type="checkbox"
-              [ngModel]="userForm().enabled"
-              (ngModelChange)="onUserFieldChange('enabled', $event)"
-            />
-            <span>Active</span>
-          </label>
-        </div>
-
-        <div class="modal__footer">
-          <button type="button" class="btn btn--secondary" [disabled]="savingUser()" (click)="onCloseUserModal()">
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            class="btn btn--primary"
-            [disabled]="savingUser()"
-            (click)="onSubmitUser()"
-          >
-            {{ savingUser() ? 'Saving...' : (isEditingUser() ? 'Save changes' : 'Create user') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (showRouteModal()) {
-    <div class="modal-backdrop" (click)="onCloseRouteModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal__header">
-          <h2>{{ routeModalTitle() }}</h2>
-          <button type="button" class="modal__close" [disabled]="savingRoute()" (click)="onCloseRouteModal()">×</button>
-        </div>
-
-        <div class="modal__body">
-          <label class="form-field">
-            <span>Name</span>
-            <input
-              type="text"
-              [ngModel]="routeForm().name"
-              (ngModelChange)="onRouteFieldChange('name', $event)"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Description</span>
-            <textarea
-              [ngModel]="routeForm().description"
-              (ngModelChange)="onRouteFieldChange('description', $event)"
-            ></textarea>
-          </label>
-
-          <label class="form-field">
-            <span>City</span>
-            <input
-              type="text"
-              [ngModel]="routeForm().city"
-              (ngModelChange)="onRouteFieldChange('city', $event)"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Country</span>
-            <input
-              type="text"
-              [ngModel]="routeForm().country"
-              (ngModelChange)="onRouteFieldChange('country', $event)"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Distance</span>
-            <input
-              type="number"
-              step="0.1"
-              [ngModel]="routeForm().distance"
-              (ngModelChange)="onRouteFieldChange('distance', $event === '' ? null : $any($event))"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Duration</span>
-            <input
-              type="number"
-              [ngModel]="routeForm().duration"
-              (ngModelChange)="onRouteFieldChange('duration', $event === '' ? null : $any($event))"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Difficulty</span>
-            <input
-              type="text"
-              [ngModel]="routeForm().difficulty"
-              (ngModelChange)="onRouteFieldChange('difficulty', $any($event))"
-              placeholder="easy / medium / hard"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>Tags</span>
-            <input
-              type="text"
-              [ngModel]="routeForm().tags"
-              (ngModelChange)="onRouteFieldChange('tags', $event)"
-              placeholder="montaña, naturaleza"
-            />
-          </label>
-
-          <label class="form-field">
-            <span>User ID</span>
-            <input
-              type="text"
-              [ngModel]="routeForm().userId"
-              (ngModelChange)="onRouteFieldChange('userId', $event)"
-            />
-          </label>
-        </div>
-
-        <div class="modal__footer">
-          <button type="button" class="btn btn--secondary" [disabled]="savingRoute()" (click)="onCloseRouteModal()">
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            class="btn btn--primary"
-            [disabled]="savingRoute()"
-            (click)="onSubmitRoute()"
-          >
-            {{ savingRoute() ? 'Saving...' : (isEditingRoute() ? 'Save changes' : 'Create route') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (showPointModal()) {
-  <div class="modal-backdrop" (click)="onClosePointModal()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal__header">
-        <h2>{{ pointModalTitle() }}</h2>
-        <button type="button" class="modal__close" [disabled]="savingPoint()" (click)="onClosePointModal()">×</button>
-      </div>
-
-      <div class="modal__body">
-        <label class="form-field">
-          <span>Name</span>
-          <input
-            type="text"
-            [ngModel]="pointForm().name"
-            (ngModelChange)="onPointFieldChange('name', $event)"
-          />
-        </label>
-
-        <label class="form-field">
-          <span>Description</span>
-          <textarea
-            [ngModel]="pointForm().description"
-            (ngModelChange)="onPointFieldChange('description', $event)"
-          ></textarea>
-        </label>
-
-        <label class="form-field">
-          <span>Latitude</span>
-          <input
-            type="number"
-            step="any"
-            [ngModel]="pointForm().latitude"
-            (ngModelChange)="onPointFieldChange('latitude', $event === '' ? null : $any($event))"
-          />
-        </label>
-
-        <label class="form-field">
-          <span>Longitude</span>
-          <input
-            type="number"
-            step="any"
-            [ngModel]="pointForm().longitude"
-            (ngModelChange)="onPointFieldChange('longitude', $event === '' ? null : $any($event))"
-          />
-        </label>
-
-        <label class="form-field">
-          <span>Image</span>
-          <input
-            type="text"
-            [ngModel]="pointForm().image"
-            (ngModelChange)="onPointFieldChange('image', $event)"
-          />
-        </label>
-
-        <label class="form-field">
-          <span>Route ID</span>
-          <input
-            type="text"
-            [ngModel]="pointForm().routeId"
-            (ngModelChange)="onPointFieldChange('routeId', $event)"
-          />
-        </label>
-
-        <label class="form-field">
-          <span>Index</span>
-          <input
-            type="number"
-            [ngModel]="pointForm().index"
-            (ngModelChange)="onPointFieldChange('index', $event === '' ? null : $any($event))"
-          />
-        </label>
-      </div>
-
-      <div class="modal__footer">
-        <button type="button" class="btn btn--secondary" [disabled]="savingPoint()" (click)="onClosePointModal()">
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          class="btn btn--primary"
-          [disabled]="savingPoint()"
-          (click)="onSubmitPoint()"
-        >
-          {{ savingPoint() ? 'Saving...' : (isEditingPoint() ? 'Save changes' : 'Create point') }}
-        </button>
-      </div>
-    </div>
-  </div>
-}
+  <app-point-form-modal
+    [open]="showPointModal()"
+    [title]="pointModalTitle()"
+    [form]="pointForm()"
+    [saving]="savingPoint()"
+    [isEditing]="isEditingPoint()"
+    (close)="onClosePointModal()"
+    (submit)="onSubmitPoint()"
+    (fieldChange)="onPointFieldChange($event.key, $event.value)"
+  />
 }
