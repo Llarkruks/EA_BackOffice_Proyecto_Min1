@@ -17,7 +17,7 @@ import {
   providedIn: 'root'
 })
 export class DataService {
-  private readonly api = inject(ApiService);
+  private api = inject(ApiService);
 
   getItems<TType extends ItemType>(
     type: TType,
@@ -91,6 +91,8 @@ export class DataService {
     requestedPage: number,
     requestedLimit: number
   ): PaginatedResponse<ItemModelByType[TType]> {
+    // Different backends can return pagination with different field names.
+    // This method unifies those responses into a single app-friendly shape.
     const normalizedResponse = response as Record<string, unknown>;
 
     const rawItems = this.getArrayValue<Record<string, unknown>>(
@@ -143,6 +145,7 @@ export class DataService {
       undefined
     );
 
+    // If total is missing, estimate it with a simple heuristic based on page size.
     const hasKnownTotal = typeof total === 'number' && total > 0;
     const hasMorePagesByHeuristic = items.length === limit;
 

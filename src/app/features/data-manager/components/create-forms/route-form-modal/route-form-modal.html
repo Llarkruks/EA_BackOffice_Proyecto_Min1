@@ -1,0 +1,65 @@
+@if (open()) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>{{ title() }}</h2>
+        <button type="button" class="modal__close" [disabled]="saving()" (click)="onClose()">×</button>
+      </div>
+
+      <div class="modal__body">
+        <label class="form-field">
+          <span>Name</span>
+          <input type="text" [ngModel]="form().name" (ngModelChange)="onTextFieldChange('name', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Description</span>
+          <textarea [ngModel]="form().description" (ngModelChange)="onTextFieldChange('description', $event)"></textarea>
+        </label>
+
+        <label class="form-field">
+          <span>City</span>
+          <input type="text" [ngModel]="form().city" (ngModelChange)="onTextFieldChange('city', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Country</span>
+          <input type="text" [ngModel]="form().country" (ngModelChange)="onTextFieldChange('country', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Distance</span>
+          <input type="number" step="0.1" [ngModel]="form().distance" (ngModelChange)="onNumberFieldChange('distance', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Duration</span>
+          <input type="number" [ngModel]="form().duration" (ngModelChange)="onNumberFieldChange('duration', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Difficulty</span>
+          <input type="text" [ngModel]="form().difficulty" (ngModelChange)="onTextFieldChange('difficulty', $event)" placeholder="easy / medium / hard" />
+        </label>
+
+        <label class="form-field">
+          <span>Tags</span>
+          <input type="text" [ngModel]="form().tags" (ngModelChange)="onTextFieldChange('tags', $event)" placeholder="montaña, naturaleza" />
+        </label>
+
+        <label class="form-field">
+          <span>User ID</span>
+          <input type="text" [ngModel]="form().userId" (ngModelChange)="onTextFieldChange('userId', $event)" />
+        </label>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" [disabled]="saving()" (click)="onClose()">Cancel</button>
+
+        <button type="button" class="btn btn--primary" [disabled]="saving()" (click)="onSubmit()">
+          {{ saving() ? 'Saving...' : (isEditing() ? 'Save changes' : 'Create route') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

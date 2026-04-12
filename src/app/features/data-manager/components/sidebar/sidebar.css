@@ -1,9 +1,9 @@
 .sidebar {
-  width: 260px;
+  width: 220px;
   min-height: 100vh;
   background: #1f2937;
   color: #ffffff;
-  padding: 24px 16px;
+  padding: 20px 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -15,7 +15,7 @@
   flex-direction: column;
   gap: 14px;
   width: 100%;
-  max-width: 220px;
+  max-width: 188px;
   justify-content: center;
 }
 
@@ -26,8 +26,8 @@
   background: transparent;
   color: #d1d5db;
   text-align: center;
-  padding: 18px 14px;
-  font-size: 28px;
+  padding: 14px 12px;
+  font-size: 22px;
   font-weight: 700;
   cursor: pointer;
   transition:

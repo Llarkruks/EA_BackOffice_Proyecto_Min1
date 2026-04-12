@@ -49,10 +49,10 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DeleteItemActionButton {
-  readonly itemId = input.required<string>();
-  readonly inSelectionMode = input<boolean>(false);
+  itemId = input.required<string>();
+  inSelectionMode = input<boolean>(false);
 
-  readonly deleteClick = output<string>();
+  deleteClick = output<string>();
 
   onDelete(event: Event): void {
     event.stopPropagation();

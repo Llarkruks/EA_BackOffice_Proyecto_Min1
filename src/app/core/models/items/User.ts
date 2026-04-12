@@ -2,7 +2,6 @@ export type UserRole = 'admin' | 'user';
 
 export interface UserItem {
   _id: string;
-  id: string;
   name: string;
   surname: string;
   username: string;
@@ -11,7 +10,7 @@ export interface UserItem {
   role: UserRole;
   createdAt?: string;
   updatedAt?: string;
-  [key: string]: unknown;
+  // [key: string]: unknown; // Uncomment if you want to allow additional properties
 }
 
 export interface CreateUserPayload {

@@ -27,72 +27,116 @@
       </div>
     }
 
-    <div class="table__col table__col--actions"></div>
+    <div class="table__col table__col--actions table__col--header-actions">
+      @if (canAddItem()) {
+        <button
+          type="button"
+          class="table__add-btn"
+          (click)="onAddItem(); $event.stopPropagation()"
+        >
+          {{ addButtonLabel() }}
+        </button>
+      }
+    </div>
   </div>
 
-  @if (items().length > 0) {
-    @for (item of items(); track item.id + '-' + $index; let rowIndex = $index) {
-      <div class="table__row-wrapper">
-        <div
-          class="table__row"
-          [class.table__row--disabled]="isRowDisabled(item)"
-          [style.grid-template-columns]="tableGridTemplateColumns()"
-          (click)="toggleExpand(item.id, rowIndex)"
-        >
-          <div class="table__col table__col--check" (click)="$event.stopPropagation()">
-            <label
-              class="table__row-checkbox"
-              [class.table__row-checkbox--visible]="selectionMode || isSelected(item.id)"
-            >
-              <input
-                type="checkbox"
-                [checked]="isSelected(item.id)"
-                (change)="onCheckboxChange(item.id, $event)"
-              />
-            </label>
-          </div>
-
-          @for (column of activePreviewColumns(); track column.key) {
-            <div class="table__col table__col--cell-value">
-              <span class="table__cell-text">
-                {{ getPreviewCellText(item, column) }}
-              </span>
-            </div>
-          }
-
+  <div class="table__body">
+    @if (items().length > 0) {
+      @for (item of items(); track item._id + '-' + $index; let rowIndex = $index) {
+        <div class="table__row-wrapper">
           <div
-            class="table__col table__col--actions"
-            (click)="$event.stopPropagation()"
+            class="table__row"
+            [class.table__row--disabled]="isRowDisabled(item)"
+            [style.grid-template-columns]="tableGridTemplateColumns()"
+            (click)="toggleExpand(item._id, rowIndex)"
           >
-            @if (!selectionMode) {
-              <app-item-action-buttons
-                [item]="item"
-                [actionConfig]="actionConfig()"
-                (deleteClick)="onItemDelete($event)"
-                (toggleEnabledClick)="onItemToggleEnabled($event)"
-                (editClick)="onItemEdit($event)"
-              />
-            }
-          </div>
-        </div>
+            <div class="table__col table__col--check" (click)="$event.stopPropagation()">
+              <label
+                class="table__row-checkbox"
+                [class.table__row-checkbox--visible]="selectionMode || isSelected(item._id)"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="isSelected(item._id)"
+                  (change)="onCheckboxChange(item._id, $event)"
+                />
+              </label>
+            </div>
 
-        @if (expandedRowKey === getRowKey(item.id, rowIndex)) {
-          <div class="table__expanded">
-            <div class="table__details">
-              @for (entry of getObjectEntries(item); track entry.key) {
-                <div class="table__detail-row">
-                  <div class="table__detail-key">{{ entry.key }}</div>
-                  <div class="table__detail-value">{{ entry.value }}</div>
+            @for (column of activePreviewColumns(); track column.key) {
+              <div class="table__col table__col--cell-value">
+                <span class="table__cell-text">
+                  {{ getPreviewCellText(item, column) }}
+                </span>
+              </div>
+            }
+
+            <div
+              class="table__col table__col--actions"
+              (click)="$event.stopPropagation()"
+            >
+              @if (!selectionMode && isInlineEditingRow(getRowKey(item._id, rowIndex))) {
+                <div class="table__inline-actions">
+                  <button
+                    type="button"
+                    class="table__inline-action table__inline-action--primary"
+                    [disabled]="!hasInlineChanges() || isInlineEditSaving(item._id)"
+                    (click)="submitInlineEdit()"
+                  >
+                    {{ isInlineEditSaving(item._id) ? 'Saving...' : 'Edit' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="table__inline-action table__inline-action--secondary"
+                    [disabled]="isInlineEditSaving(item._id)"
+                    (click)="cancelInlineEdit()"
+                  >
+                    Cancel
+                  </button>
                 </div>
+              } @else if (!selectionMode) {
+                <app-item-action-buttons
+                  [item]="item"
+                  [actionConfig]="actionConfig()"
+                  (deleteClick)="onItemDelete($event)"
+                  (toggleEnabledClick)="onItemToggleEnabled($event)"
+                  (editClick)="startInlineEdit(item, rowIndex)"
+                />
               }
             </div>
           </div>
-        }
+
+          @if (expandedRowKey === getRowKey(item._id, rowIndex)) {
+            <div class="table__expanded">
+              <div class="table__details">
+                @for (entry of getObjectEntries(item); track entry.key) {
+                  <div class="table__detail-row">
+                    <div class="table__detail-key">{{ entry.key }}</div>
+                    <div class="table__detail-value">
+                      @if (isInlineEditingRow(getRowKey(item._id, rowIndex)) && isEditableField(entry.key)) {
+                        <input
+                          type="text"
+                          class="table__inline-input"
+                          [class.table__inline-input--changed]="isInlineInputChanged(entry.key)"
+                          [value]="getInlineInputValue(entry.key)"
+                          (input)="onInlineInputChange(entry.key, $event)"
+                          (click)="$event.stopPropagation()"
+                        />
+                      } @else {
+                        {{ entry.value }}
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    } @else {
+      <div class="table__empty">
+        No items found for this type.
       </div>
     }
-  } @else {
-    <div class="table__empty">
-      No items found for this type.
-    </div>
-  }
+  </div>
 </div>

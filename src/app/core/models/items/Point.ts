@@ -1,6 +1,5 @@
 export interface PointItem {
   _id: string;
-  id: string;
   name: string;
   description?: string;
   latitude: number;
@@ -10,7 +9,7 @@ export interface PointItem {
   index: number;
   createdAt?: string;
   updatedAt?: string;
-  [key: string]: unknown;
+  // [key: string]: unknown; // Uncomment if you want to allow additional properties
 }
 
 export interface CreatePointPayload {

@@ -1,0 +1,63 @@
+@if (open()) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>{{ title() }}</h2>
+        <button type="button" class="modal__close" [disabled]="saving()" (click)="onClose()">×</button>
+      </div>
+
+      <div class="modal__body">
+        <label class="form-field">
+          <span>Name</span>
+          <input type="text" [ngModel]="form().name" (ngModelChange)="onFieldChange('name', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Surname</span>
+          <input type="text" [ngModel]="form().surname" (ngModelChange)="onFieldChange('surname', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Username</span>
+          <input type="text" [ngModel]="form().username" (ngModelChange)="onFieldChange('username', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Email</span>
+          <input type="email" [ngModel]="form().email" (ngModelChange)="onFieldChange('email', $event)" />
+        </label>
+
+        <label class="form-field">
+          <span>Role</span>
+          <select [ngModel]="form().role" (ngModelChange)="onFieldChange('role', $event)">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span>Password</span>
+          <input
+            type="password"
+            [ngModel]="form().password"
+            (ngModelChange)="onFieldChange('password', $event)"
+            [placeholder]="isEditing() ? 'Leave empty to keep current password' : 'Enter password'"
+          />
+        </label>
+
+        <label class="form-field form-field--checkbox">
+          <input type="checkbox" [ngModel]="form().enabled" (ngModelChange)="onFieldChange('enabled', $event)" />
+          <span>Active</span>
+        </label>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" [disabled]="saving()" (click)="onClose()">Cancel</button>
+
+        <button type="button" class="btn btn--primary" [disabled]="saving()" (click)="onSubmit()">
+          {{ saving() ? 'Saving...' : (isEditing() ? 'Save changes' : 'Create user') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

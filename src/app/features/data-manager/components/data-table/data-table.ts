@@ -1,4 +1,4 @@
-import { Component, input, output, ChangeDetectionStrategy, computed } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ItemActionConfig, ItemModelBase, ItemPreviewColumn } from '../../../../core/models/items';
 import { ItemActionButtons } from '../item-action-buttons/item-action-buttons';
@@ -11,30 +11,49 @@ import { ItemActionButtons } from '../item-action-buttons/item-action-buttons';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DataTable {
-  readonly items = input<ItemModelBase[]>([]);
-  readonly previewColumns = input<ItemPreviewColumn[]>([]);
-  readonly actionConfig = input<ItemActionConfig>({
+  items = input<ItemModelBase[]>([]);
+  previewColumns = input<ItemPreviewColumn[]>([]);
+  actionConfig = input<ItemActionConfig>({
     edit: true,
     delete: true,
     toggleEnabled: false
   });
-  readonly previewTextMaxLength = input(30);
-  readonly selectedIds = input<string[]>([]);
+  previewTextMaxLength = input(30);
+  selectedIds = input<string[]>([]);
+  canAddItem = input(false);
+  addButtonLabel = input('Add item');
+  editableFields = input<string[]>([]);
+  inlineEditSavingItemId = input<string | null>(null);
+  inlineEditCompletedItemId = input<string | null>(null);
 
-  readonly deleteItem = output<string>();
-  readonly deleteMany = output<string[]>();
-  readonly toggleEnabled = output<string>();
-  readonly editItem = output<string>();
-  readonly selectedIdsChange = output<string[]>();
+  deleteItem = output<string>();
+  deleteMany = output<string[]>();
+  toggleEnabled = output<string>();
+  selectedIdsChange = output<string[]>();
+  addItemClick = output<void>();
+  inlineEditSubmit = output<{ itemId: string; changes: Record<string, string> }>();
 
   expandedRowKey: string | null = null;
-  private readonly maxPreviewColumns = 4;
+  editingRowKey: string | null = null;
+  editingItemId: string | null = null;
+  private editDraft: Record<string, string> = {};
+  private originalEditValues: Record<string, string> = {};
+  private maxPreviewColumns = 4;
 
-  readonly activePreviewColumns = computed(() => {
+  constructor() {
+    effect(() => {
+      const completedItemId = this.inlineEditCompletedItemId();
+      if (completedItemId && this.editingItemId === completedItemId) {
+        this.finishInlineEdit();
+      }
+    });
+  }
+
+  activePreviewColumns = computed(() => {
     return this.previewColumns().slice(0, this.maxPreviewColumns);
   });
 
-  readonly tableGridTemplateColumns = computed(() => {
+  tableGridTemplateColumns = computed(() => {
     const previewCount = Math.max(1, this.activePreviewColumns().length);
     return `52px repeat(${previewCount}, minmax(0, 1fr)) 112px`;
   });
@@ -53,7 +72,22 @@ export class DataTable {
 
   toggleExpand(itemId: string, index: number): void {
     const rowKey = this.getRowKey(itemId, index);
-    this.expandedRowKey = this.expandedRowKey === rowKey ? null : rowKey;
+
+    if (this.expandedRowKey === rowKey) {
+      this.expandedRowKey = null;
+
+      if (this.editingRowKey === rowKey) {
+        this.finishInlineEdit();
+      }
+
+      return;
+    }
+
+    if (this.editingRowKey && this.editingRowKey !== rowKey) {
+      this.finishInlineEdit();
+    }
+
+    this.expandedRowKey = rowKey;
   }
 
   isSelected(itemId: string): boolean {
@@ -81,8 +115,62 @@ export class DataTable {
     this.toggleEnabled.emit(itemId);
   }
 
-  onItemEdit(itemId: string): void {
-    this.editItem.emit(itemId);
+  onAddItem(): void {
+    this.addItemClick.emit();
+  }
+
+  startInlineEdit(item: ItemModelBase, rowIndex: number): void {
+    const rowKey = this.getRowKey(item._id, rowIndex);
+    this.expandedRowKey = rowKey;
+    this.editingRowKey = rowKey;
+    this.editingItemId = item._id;
+    this.originalEditValues = this.buildEditableValueMap(item);
+    this.editDraft = { ...this.originalEditValues };
+  }
+
+  cancelInlineEdit(): void {
+    this.finishInlineEdit();
+  }
+
+  submitInlineEdit(): void {
+    if (!this.editingItemId || this.inlineEditSavingItemId() === this.editingItemId) {
+      return;
+    }
+
+    const changes = this.getInlineEditChanges();
+    this.inlineEditSubmit.emit({
+      itemId: this.editingItemId,
+      changes
+    });
+  }
+
+  isInlineEditingRow(rowKey: string): boolean {
+    return this.editingRowKey === rowKey;
+  }
+
+  isInlineEditingItem(itemId: string): boolean {
+    return this.editingItemId === itemId;
+  }
+
+  isInlineEditSaving(itemId: string): boolean {
+    return this.inlineEditSavingItemId() === itemId;
+  }
+
+  isEditableField(key: string): boolean {
+    return this.editableFields().includes(key);
+  }
+
+  getInlineInputValue(key: string): string {
+    return this.editDraft[key] ?? '';
+  }
+
+  onInlineInputChange(key: string, event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.editDraft[key] = target.value;
+  }
+
+  isInlineInputChanged(key: string): boolean {
+    return (this.editDraft[key] ?? '') !== (this.originalEditValues[key] ?? '');
   }
 
   getPreviewCellText(item: ItemModelBase, column: ItemPreviewColumn): string {
@@ -92,10 +180,10 @@ export class DataTable {
 
   getPreviewValue(item: ItemModelBase, key: string): unknown {
     if (key === '_id') {
-      return item['_id'];
+      return item._id;
     }
 
-    const value = item[key];
+    const value = (item as unknown as Record<string, unknown>)[key];
 
     if (key === 'enabled') {
       return value === true ? 'Active' : 'Inactive';
@@ -105,7 +193,7 @@ export class DataTable {
   }
 
   isRowDisabled(item: ItemModelBase): boolean {
-    return item['enabled'] === false;
+    return item.enabled === false;
   }
 
   onBulkDelete(): void {
@@ -118,12 +206,63 @@ export class DataTable {
   }
 
   getObjectEntries(item: ItemModelBase): Array<{ key: string; value: unknown }> {
-    return Object.entries(item)
-      .filter(([key]) => !(key === 'id' && Object.prototype.hasOwnProperty.call(item, '_id')))
-      .map(([key, value]) => ({
-        key,
-        value: this.normalizeDetailValue(value)
-      }));
+    return Object.entries(item).map(([key, value]) => ({
+      key,
+      value: this.normalizeDetailValue(value)
+    }));
+  }
+
+  hasInlineChanges(): boolean {
+    return Object.keys(this.getInlineEditChanges()).length > 0;
+  }
+
+  private buildEditableValueMap(item: ItemModelBase): Record<string, string> {
+    const values: Record<string, string> = {};
+
+    for (const key of this.editableFields()) {
+      const rawValue = (item as unknown as Record<string, unknown>)[key];
+      values[key] = this.toEditableInputText(rawValue);
+    }
+
+    return values;
+  }
+
+  private toEditableInputText(value: unknown): string {
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item)).join(', ');
+    }
+
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    return '';
+  }
+
+  private getInlineEditChanges(): Record<string, string> {
+    const changes: Record<string, string> = {};
+
+    for (const key of this.editableFields()) {
+      const currentValue = this.editDraft[key] ?? '';
+      const initialValue = this.originalEditValues[key] ?? '';
+
+      if (currentValue !== initialValue) {
+        changes[key] = currentValue;
+      }
+    }
+
+    return changes;
+  }
+
+  private finishInlineEdit(): void {
+    this.editingRowKey = null;
+    this.editingItemId = null;
+    this.editDraft = {};
+    this.originalEditValues = {};
   }
 
   private normalizeDetailValue(value: unknown): unknown {

@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 
 @Component({
   selector: 'app-edit-item-action-button',
-  standalone: true,
   template: `
     <button
       type="button"
@@ -50,9 +49,9 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EditItemActionButton {
-  readonly itemId = input.required<string>();
-  readonly inSelectionMode = input(false);
-  readonly editClick = output<string>();
+  itemId = input.required<string>();
+  inSelectionMode = input(false);
+  editClick = output<string>();
 
   onEdit(event: Event): void {
     event.stopPropagation();
