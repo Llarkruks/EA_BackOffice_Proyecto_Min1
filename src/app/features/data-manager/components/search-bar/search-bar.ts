@@ -8,11 +8,11 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SearchBar {
-  readonly placeholder = input('Search...');
-  readonly value = input('');
-  readonly searching = input(false);
+  placeholder = input('Search...');
+  value = input('');
+  searching = input(false);
 
-  readonly valueChange = output<string>();
+  valueChange = output<string>();
 
   onInput(event: Event): void {
     const target = event.target as HTMLInputElement;

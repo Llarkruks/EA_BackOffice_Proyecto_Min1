@@ -10,15 +10,15 @@ import { UserFormValue } from '../../../models/forms';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserFormModal {
-  readonly open = input(false);
-  readonly title = input('Add user');
-  readonly form = input.required<UserFormValue>();
-  readonly saving = input(false);
-  readonly isEditing = input(false);
+  open = input(false);
+  title = input('Add user');
+  form = input.required<UserFormValue>();
+  saving = input(false);
+  isEditing = input(false);
 
-  readonly close = output<void>();
-  readonly submit = output<void>();
-  readonly fieldChange = output<{ key: keyof UserFormValue; value: UserFormValue[keyof UserFormValue] }>();
+  close = output<void>();
+  submit = output<void>();
+  fieldChange = output<{ key: keyof UserFormValue; value: UserFormValue[keyof UserFormValue] }>();
 
   onClose(): void {
     if (this.saving()) {

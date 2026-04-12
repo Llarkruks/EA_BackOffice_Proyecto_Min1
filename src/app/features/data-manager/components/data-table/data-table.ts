@@ -11,34 +11,34 @@ import { ItemActionButtons } from '../item-action-buttons/item-action-buttons';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DataTable {
-  readonly items = input<ItemModelBase[]>([]);
-  readonly previewColumns = input<ItemPreviewColumn[]>([]);
-  readonly actionConfig = input<ItemActionConfig>({
+  items = input<ItemModelBase[]>([]);
+  previewColumns = input<ItemPreviewColumn[]>([]);
+  actionConfig = input<ItemActionConfig>({
     edit: true,
     delete: true,
     toggleEnabled: false
   });
-  readonly previewTextMaxLength = input(30);
-  readonly selectedIds = input<string[]>([]);
-  readonly canAddItem = input(false);
-  readonly addButtonLabel = input('Add item');
-  readonly editableFields = input<string[]>([]);
-  readonly inlineEditSavingItemId = input<string | null>(null);
-  readonly inlineEditCompletedItemId = input<string | null>(null);
+  previewTextMaxLength = input(30);
+  selectedIds = input<string[]>([]);
+  canAddItem = input(false);
+  addButtonLabel = input('Add item');
+  editableFields = input<string[]>([]);
+  inlineEditSavingItemId = input<string | null>(null);
+  inlineEditCompletedItemId = input<string | null>(null);
 
-  readonly deleteItem = output<string>();
-  readonly deleteMany = output<string[]>();
-  readonly toggleEnabled = output<string>();
-  readonly selectedIdsChange = output<string[]>();
-  readonly addItemClick = output<void>();
-  readonly inlineEditSubmit = output<{ itemId: string; changes: Record<string, string> }>();
+  deleteItem = output<string>();
+  deleteMany = output<string[]>();
+  toggleEnabled = output<string>();
+  selectedIdsChange = output<string[]>();
+  addItemClick = output<void>();
+  inlineEditSubmit = output<{ itemId: string; changes: Record<string, string> }>();
 
   expandedRowKey: string | null = null;
   editingRowKey: string | null = null;
   editingItemId: string | null = null;
   private editDraft: Record<string, string> = {};
   private originalEditValues: Record<string, string> = {};
-  private readonly maxPreviewColumns = 4;
+  private maxPreviewColumns = 4;
 
   constructor() {
     effect(() => {
@@ -49,11 +49,11 @@ export class DataTable {
     });
   }
 
-  readonly activePreviewColumns = computed(() => {
+  activePreviewColumns = computed(() => {
     return this.previewColumns().slice(0, this.maxPreviewColumns);
   });
 
-  readonly tableGridTemplateColumns = computed(() => {
+  tableGridTemplateColumns = computed(() => {
     const previewCount = Math.max(1, this.activePreviewColumns().length);
     return `52px repeat(${previewCount}, minmax(0, 1fr)) 112px`;
   });

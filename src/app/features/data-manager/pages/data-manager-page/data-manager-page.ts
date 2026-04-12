@@ -47,9 +47,9 @@ import {
   styleUrl: './data-manager-page.css'
 })
 export class DataManagerPage implements OnInit {
-  private readonly dataService = inject(DataService);
+  private dataService = inject(DataService);
 
-  readonly typeOptions: ItemTypeOption[] = ITEM_TYPE_OPTIONS;
+  typeOptions: ItemTypeOption[] = ITEM_TYPE_OPTIONS;
 
   selectedType = signal<ItemType>('users');
   items = signal<ItemModel[]>([]);
@@ -105,62 +105,62 @@ export class DataManagerPage implements OnInit {
   });
 
   pointForm = signal<PointFormValue>({
-  name: '',
-  description: '',
-  latitude: null,
-  longitude: null,
-  image: '',
-  routeId: '',
-  index: null
+    name: '',
+    description: '',
+    latitude: null,
+    longitude: null,
+    image: '',
+    routeId: '',
+    index: null
   });
 
-  readonly currentTypeLabel = computed(() => {
+  currentTypeLabel = computed(() => {
     return this.currentTypeConfig().label;
   });
 
-  readonly currentTypeConfig = computed<ItemUiConfig>(() => {
+  currentTypeConfig = computed<ItemUiConfig>(() => {
     return ITEM_UI_CONFIG[this.selectedType()];
   });
 
-  readonly currentPreviewColumns = computed(() => {
+  currentPreviewColumns = computed(() => {
     return this.currentTypeConfig().previewColumns;
   });
 
-  readonly currentActionConfig = computed<ItemActionConfig>(() => {
+  currentActionConfig = computed<ItemActionConfig>(() => {
     return this.currentTypeConfig().actions;
   });
 
-  readonly currentEditableFields = computed(() => {
+  currentEditableFields = computed(() => {
     return this.currentTypeConfig().editableFields;
   });
 
-  readonly searchPlaceholder = computed(() => {
+  searchPlaceholder = computed(() => {
     const firstColumn = this.currentPreviewColumns()[0];
     return firstColumn ? `Search by ${firstColumn.label.toLowerCase()}...` : 'Search...';
   });
 
-  readonly isUsersType = computed(() => this.selectedType() === 'users');
-  readonly isRoutesType = computed(() => this.selectedType() === 'routes');
+  isUsersType = computed(() => this.selectedType() === 'users');
+  isRoutesType = computed(() => this.selectedType() === 'routes');
 
-  readonly isEditingUser = computed(() => this.editingUserId() !== null);
-  readonly isEditingRoute = computed(() => this.editingRouteId() !== null);
+  isEditingUser = computed(() => this.editingUserId() !== null);
+  isEditingRoute = computed(() => this.editingRouteId() !== null);
 
-  readonly modalTitle = computed(() => this.isEditingUser() ? 'Edit user' : 'Add user');
-  readonly routeModalTitle = computed(() => this.isEditingRoute() ? 'Edit route' : 'Add route');
+  modalTitle = computed(() => this.isEditingUser() ? 'Edit user' : 'Add user');
+  routeModalTitle = computed(() => this.isEditingRoute() ? 'Edit route' : 'Add route');
 
-  readonly isPointsType = computed(() => this.selectedType() === 'points');
+  isPointsType = computed(() => this.selectedType() === 'points');
 
-  readonly isEditingPoint = computed(() => this.editingPointId() !== null);
+  isEditingPoint = computed(() => this.editingPointId() !== null);
 
-  readonly pointModalTitle = computed(() =>
+  pointModalTitle = computed(() =>
     this.isEditingPoint() ? 'Edit point' : 'Add point'
   );
 
-  readonly canAddCurrentType = computed(() => {
-  return true;
+  canAddCurrentType = computed(() => {
+    return true;
   });
 
-  readonly addButtonLabel = computed(() => {
+  addButtonLabel = computed(() => {
     return 'Add';
   });
 
@@ -216,6 +216,7 @@ export class DataManagerPage implements OnInit {
   }
 
   private searchAcrossAllPages(): void {
+    // Global search loads all pages once and filters client-side for a simple UX.
     const term = this.searchTerm().trim().toLowerCase();
     const searchKey = this.getSearchKey();
     const itemType = this.selectedType();
@@ -259,36 +260,36 @@ export class DataManagerPage implements OnInit {
   }
 
   onOpenAddItem(): void {
-  if (this.selectedType() === 'users') {
-    this.onOpenAddUser();
-    return;
-  }
+    if (this.selectedType() === 'users') {
+      this.onOpenAddUser();
+      return;
+    }
 
-  if (this.selectedType() === 'routes') {
-    this.onOpenAddRoute();
-    return;
-  }
+    if (this.selectedType() === 'routes') {
+      this.onOpenAddRoute();
+      return;
+    }
 
-  if (this.selectedType() === 'points') {
-    this.onOpenAddPoint();
+    if (this.selectedType() === 'points') {
+      this.onOpenAddPoint();
+    }
   }
-}
 
   onOpenEditItem(id: string): void {
-  if (this.selectedType() === 'users') {
-    this.onOpenEditUser(id);
-    return;
-  }
+    if (this.selectedType() === 'users') {
+      this.onOpenEditUser(id);
+      return;
+    }
 
-  if (this.selectedType() === 'routes') {
-    this.onOpenEditRoute(id);
-    return;
-  }
+    if (this.selectedType() === 'routes') {
+      this.onOpenEditRoute(id);
+      return;
+    }
 
-  if (this.selectedType() === 'points') {
-    this.onOpenEditPoint(id);
+    if (this.selectedType() === 'points') {
+      this.onOpenEditPoint(id);
+    }
   }
-}
 
   onOpenAddUser(): void {
     this.editingUserId.set(null);
@@ -500,105 +501,105 @@ export class DataManagerPage implements OnInit {
   }
 
   onOpenAddPoint(): void {
-  this.editingPointId.set(null);
+    this.editingPointId.set(null);
 
-  this.pointForm.set({
-    name: '',
-    description: '',
-    latitude: null,
-    longitude: null,
-    image: '',
-    routeId: '',
-    index: null
-  });
+    this.pointForm.set({
+      name: '',
+      description: '',
+      latitude: null,
+      longitude: null,
+      image: '',
+      routeId: '',
+      index: null
+    });
 
-  this.showPointModal.set(true);
-}
-
-onOpenEditPoint(id: string): void {
-  const item = this.items().find((point): point is PointItem => point._id === id);
-
-  if (!item) return;
-
-  this.editingPointId.set(id);
-
-  this.pointForm.set({
-    name: item.name,
-    description: item.description ?? '',
-    latitude: item.latitude,
-    longitude: item.longitude,
-    image: item.image ?? '',
-    routeId: item.routeId,
-    index: item.index
-  });
-
-  this.showPointModal.set(true);
-}
-
-onPointFieldChange<K extends keyof PointFormValue>(
-  key: K,
-  value: PointFormValue[K]
-): void {
-  this.pointForm.update(current => ({
-    ...current,
-    [key]: value
-  }));
-}
-
-onClosePointModal(): void {
-  if (this.savingPoint()) {
-    return;
+    this.showPointModal.set(true);
   }
 
-  this.closePointModal();
-}
+  onOpenEditPoint(id: string): void {
+    const item = this.items().find((point): point is PointItem => point._id === id);
 
-onSubmitPoint(): void {
-  if (!this.isPointsType()) return;
+    if (!item) return;
 
-  const form = this.pointForm();
+    this.editingPointId.set(id);
 
-  const payload: CreatePointPayload = {
-    name: form.name.trim(),
-    description: form.description.trim(),
-    latitude: form.latitude === null ? 0 : Number(form.latitude),
-    longitude: form.longitude === null ? 0 : Number(form.longitude),
-    image: form.image.trim(),
-    routeId: form.routeId.trim(),
-    index: form.index === null ? 0 : Number(form.index)
-  };
+    this.pointForm.set({
+      name: item.name,
+      description: item.description ?? '',
+      latitude: item.latitude,
+      longitude: item.longitude,
+      image: item.image ?? '',
+      routeId: item.routeId,
+      index: item.index
+    });
 
-  this.savingPoint.set(true);
+    this.showPointModal.set(true);
+  }
 
-  if (this.isEditingPoint()) {
-    this.dataService.updateItem('points', this.editingPointId()!, payload).subscribe({
+  onPointFieldChange<K extends keyof PointFormValue>(
+    key: K,
+    value: PointFormValue[K]
+  ): void {
+    this.pointForm.update(current => ({
+      ...current,
+      [key]: value
+    }));
+  }
+
+  onClosePointModal(): void {
+    if (this.savingPoint()) {
+      return;
+    }
+
+    this.closePointModal();
+  }
+
+  onSubmitPoint(): void {
+    if (!this.isPointsType()) return;
+
+    const form = this.pointForm();
+
+    const payload: CreatePointPayload = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      latitude: form.latitude === null ? 0 : Number(form.latitude),
+      longitude: form.longitude === null ? 0 : Number(form.longitude),
+      image: form.image.trim(),
+      routeId: form.routeId.trim(),
+      index: form.index === null ? 0 : Number(form.index)
+    };
+
+    this.savingPoint.set(true);
+
+    if (this.isEditingPoint()) {
+      this.dataService.updateItem('points', this.editingPointId()!, payload).subscribe({
+        next: () => {
+          this.savingPoint.set(false);
+          this.closePointModal();
+          this.loadItems();
+        },
+        error: (error) => {
+          console.error('Update point error:', error);
+          this.savingPoint.set(false);
+        }
+      });
+
+      return;
+    }
+
+    this.dataService.createItem('points', payload).subscribe({
       next: () => {
         this.savingPoint.set(false);
         this.closePointModal();
+        this.page.set(1);
         this.loadItems();
       },
       error: (error) => {
-        console.error('Update point error:', error);
+        console.error('Create point error:', error);
         this.savingPoint.set(false);
       }
     });
-
-    return;
   }
-
-  this.dataService.createItem('points', payload).subscribe({
-    next: () => {
-      this.savingPoint.set(false);
-      this.closePointModal();
-      this.page.set(1);
-      this.loadItems();
-    },
-    error: (error) => {
-      console.error('Create point error:', error);
-      this.savingPoint.set(false);
-    }
-  });
-}
 
   onDeleteItem(id: string): void {
     const confirmed = window.confirm('Are you sure you want to delete this item?');
@@ -644,6 +645,8 @@ onSubmitPoint(): void {
     this.inlineEditCompletedItemId.set(null);
 
     const type = this.selectedType();
+
+    // Keep update payload creation explicit per type to avoid hidden mapping side effects.
 
     if (type === 'users') {
       const payload = buildUserInlineUpdatePayload(changes);

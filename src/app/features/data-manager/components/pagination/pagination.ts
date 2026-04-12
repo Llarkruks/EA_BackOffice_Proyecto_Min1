@@ -8,15 +8,15 @@ import { CommonModule } from '@angular/common';
   styleUrl: './pagination.css'
 })
 export class Pagination {
-  readonly page = input(1);
-  readonly limit = input(10);
-  readonly total = input(0);
-  readonly totalPages = input(0);
+  page = input(1);
+  limit = input(10);
+  total = input(0);
+  totalPages = input(0);
 
-  readonly pageChange = output<number>();
-  readonly limitChange = output<number>();
+  pageChange = output<number>();
+  limitChange = output<number>();
 
-  readonly pageSizeOptions = [10, 25, 50];
+  pageSizeOptions = [10, 25, 50];
 
   get selectedLimitValue(): string {
     return String(this.limit());

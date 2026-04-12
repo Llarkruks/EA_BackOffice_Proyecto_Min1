@@ -10,15 +10,15 @@ import { RouteFormValue } from '../../../models/forms';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteFormModal {
-  readonly open = input(false);
-  readonly title = input('Add route');
-  readonly form = input.required<RouteFormValue>();
-  readonly saving = input(false);
-  readonly isEditing = input(false);
+  open = input(false);
+  title = input('Add route');
+  form = input.required<RouteFormValue>();
+  saving = input(false);
+  isEditing = input(false);
 
-  readonly close = output<void>();
-  readonly submit = output<void>();
-  readonly fieldChange = output<{ key: keyof RouteFormValue; value: RouteFormValue[keyof RouteFormValue] }>();
+  close = output<void>();
+  submit = output<void>();
+  fieldChange = output<{ key: keyof RouteFormValue; value: RouteFormValue[keyof RouteFormValue] }>();
 
   onClose(): void {
     if (this.saving()) {

@@ -50,10 +50,10 @@ import { ItemModelBase } from '../../../../core/models/items';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ToggleEnabledActionButton {
-  readonly item = input.required<ItemModelBase>();
-  readonly inSelectionMode = input<boolean>(false);
+  item = input.required<ItemModelBase>();
+  inSelectionMode = input<boolean>(false);
 
-  readonly toggleEnabledClick = output<string>();
+  toggleEnabledClick = output<string>();
 
   isEnabled(): boolean {
     return this.item().enabled !== false;

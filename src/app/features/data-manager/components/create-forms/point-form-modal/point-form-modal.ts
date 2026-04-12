@@ -10,15 +10,15 @@ import { PointFormValue } from '../../../models/forms';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PointFormModal {
-  readonly open = input(false);
-  readonly title = input('Add point');
-  readonly form = input.required<PointFormValue>();
-  readonly saving = input(false);
-  readonly isEditing = input(false);
+  open = input(false);
+  title = input('Add point');
+  form = input.required<PointFormValue>();
+  saving = input(false);
+  isEditing = input(false);
 
-  readonly close = output<void>();
-  readonly submit = output<void>();
-  readonly fieldChange = output<{ key: keyof PointFormValue; value: PointFormValue[keyof PointFormValue] }>();
+  close = output<void>();
+  submit = output<void>();
+  fieldChange = output<{ key: keyof PointFormValue; value: PointFormValue[keyof PointFormValue] }>();
 
   onClose(): void {
     if (this.saving()) {

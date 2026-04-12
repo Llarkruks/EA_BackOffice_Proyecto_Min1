@@ -7,7 +7,6 @@ import { EditItemActionButton } from './edit-item-action-button';
 
 @Component({
   selector: 'app-item-action-buttons',
-  standalone: true,
   imports: [
     CommonModule,
     EditItemActionButton,
@@ -54,17 +53,17 @@ import { EditItemActionButton } from './edit-item-action-button';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ItemActionButtons {
-  readonly item = input.required<ItemModelBase>();
-  readonly actionConfig = input<ItemActionConfig>({
+  item = input.required<ItemModelBase>();
+  actionConfig = input<ItemActionConfig>({
     edit: true,
     delete: true,
     toggleEnabled: false
   });
-  readonly inSelectionMode = input(false);
+  inSelectionMode = input(false);
 
-  readonly deleteClick = output<string>();
-  readonly toggleEnabledClick = output<string>();
-  readonly editClick = output<string>();
+  deleteClick = output<string>();
+  toggleEnabledClick = output<string>();
+  editClick = output<string>();
 
   onEditClick(itemId: string): void {
     this.editClick.emit(itemId);

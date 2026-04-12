@@ -9,10 +9,10 @@ import { ItemType, ItemTypeOption } from '../../../../core/models/items';
   styleUrl: './sidebar.css'
 })
 export class Sidebar {
-  readonly selectedType = input.required<ItemType>();
-  readonly types = input.required<ItemTypeOption[]>();
+  selectedType = input.required<ItemType>();
+  types = input.required<ItemTypeOption[]>();
 
-  readonly typeChange = output<ItemType>();
+  typeChange = output<ItemType>();
 
   selectType(type: ItemType): void {
     this.typeChange.emit(type);
