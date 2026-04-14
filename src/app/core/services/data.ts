@@ -85,24 +85,26 @@ export class DataService {
     );
   }
 
+  addAnswer(questionId: string, payload: { text: string; userId: string }): Observable<unknown> {
+    return this.api.post(`/questions/${questionId}/answers`, payload);
+  }
+
   private normalizePaginatedResponse<TType extends ItemType>(
     type: TType,
     response: Record<string, unknown> | PaginatedResponse<Record<string, unknown>>,
     requestedPage: number,
     requestedLimit: number
   ): PaginatedResponse<ItemModelByType[TType]> {
-    // Different backends can return pagination with different field names.
-    // This method unifies those responses into a single app-friendly shape.
     const normalizedResponse = response as Record<string, unknown>;
 
     const rawItems = this.getArrayValue<Record<string, unknown>>(
       [
-      normalizedResponse['data'],
-      normalizedResponse['items'],
-      normalizedResponse['results'],
-      normalizedResponse['docs'],
-      this.getValueAtPath(normalizedResponse, ['pagination', 'data']),
-      this.getValueAtPath(normalizedResponse, ['meta', 'data'])
+        normalizedResponse['data'],
+        normalizedResponse['items'],
+        normalizedResponse['results'],
+        normalizedResponse['docs'],
+        this.getValueAtPath(normalizedResponse, ['pagination', 'data']),
+        this.getValueAtPath(normalizedResponse, ['meta', 'data'])
       ],
       []
     );
@@ -145,7 +147,6 @@ export class DataService {
       undefined
     );
 
-    // If total is missing, estimate it with a simple heuristic based on page size.
     const hasKnownTotal = typeof total === 'number' && total > 0;
     const hasMorePagesByHeuristic = items.length === limit;
 

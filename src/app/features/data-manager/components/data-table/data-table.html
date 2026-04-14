@@ -95,13 +95,25 @@
                   </button>
                 </div>
               } @else if (!selectionMode) {
-                <app-item-action-buttons
-                  [item]="item"
-                  [actionConfig]="actionConfig()"
-                  (deleteClick)="onItemDelete($event)"
-                  (toggleEnabledClick)="onItemToggleEnabled($event)"
-                  (editClick)="startInlineEdit(item, rowIndex)"
-                />
+                <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end;">
+                  @if (isQuestionItem(item)) {
+                    <button
+                      type="button"
+                      class="table__inline-action table__inline-action--secondary"
+                      (click)="onAddAnswer(item._id)"
+                    >
+                      Answer
+                    </button>
+                  }
+
+                  <app-item-action-buttons
+                    [item]="item"
+                    [actionConfig]="actionConfig()"
+                    (deleteClick)="onItemDelete($event)"
+                    (toggleEnabledClick)="onItemToggleEnabled($event)"
+                    (editClick)="startInlineEdit(item, rowIndex)"
+                  />
+                </div>
               }
             </div>
           </div>
@@ -124,6 +136,27 @@
                         />
                       } @else {
                         {{ entry.value }}
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (isQuestionItem(item)) {
+                  <div class="table__detail-row" style="margin-top: 16px; align-items: flex-start;">
+                    <div class="table__detail-key">answers</div>
+                    <div class="table__detail-value" style="width: 100%;">
+                      @if (getQuestionAnswers(item).length > 0) {
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                          @for (answer of getQuestionAnswers(item); track $index) {
+                            <div style="padding: 12px; border: 1px solid #d9dde5; border-radius: 8px; background: #f8fafc;">
+                              <div><strong>Text:</strong> {{ answer.text }}</div>
+                              <div><strong>User ID:</strong> {{ answer.userId || '-' }}</div>
+                              <div><strong>Created:</strong> {{ formatDate(answer.createdAt) }}</div>
+                            </div>
+                          }
+                        </div>
+                      } @else {
+                        <div>No answers yet.</div>
                       }
                     </div>
                   </div>

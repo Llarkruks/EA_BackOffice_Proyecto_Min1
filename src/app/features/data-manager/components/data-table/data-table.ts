@@ -32,6 +32,7 @@ export class DataTable {
   selectedIdsChange = output<string[]>();
   addItemClick = output<void>();
   inlineEditSubmit = output<{ itemId: string; changes: Record<string, string> }>();
+  addAnswerClick = output<string>();
 
   expandedRowKey: string | null = null;
   editingRowKey: string | null = null;
@@ -55,7 +56,7 @@ export class DataTable {
 
   tableGridTemplateColumns = computed(() => {
     const previewCount = Math.max(1, this.activePreviewColumns().length);
-    return `52px repeat(${previewCount}, minmax(0, 1fr)) 112px`;
+    return `52px repeat(${previewCount}, minmax(0, 1fr)) 180px`;
   });
 
   get selectionMode(): boolean {
@@ -117,6 +118,10 @@ export class DataTable {
 
   onAddItem(): void {
     this.addItemClick.emit();
+  }
+
+  onAddAnswer(itemId: string): void {
+    this.addAnswerClick.emit(itemId);
   }
 
   startInlineEdit(item: ItemModelBase, rowIndex: number): void {
@@ -183,7 +188,14 @@ export class DataTable {
       return item._id;
     }
 
-    const value = (item as unknown as Record<string, unknown>)[key];
+    const rawItem = item as unknown as Record<string, unknown>;
+
+    if (key === 'answersCount') {
+      const answers = rawItem['answers'];
+      return Array.isArray(answers) ? answers.length : 0;
+    }
+
+    const value = rawItem[key];
 
     if (key === 'enabled') {
       return value === true ? 'Active' : 'Inactive';
@@ -206,14 +218,55 @@ export class DataTable {
   }
 
   getObjectEntries(item: ItemModelBase): Array<{ key: string; value: unknown }> {
-    return Object.entries(item).map(([key, value]) => ({
-      key,
-      value: this.normalizeDetailValue(value)
-    }));
+    const entries = Object.entries(item)
+      .filter(([key]) => key !== 'answers')
+      .map(([key, value]) => ({
+        key,
+        value: this.normalizeDetailValue(value)
+      }));
+
+    return entries;
   }
 
   hasInlineChanges(): boolean {
     return Object.keys(this.getInlineEditChanges()).length > 0;
+  }
+
+  isQuestionItem(item: ItemModelBase): boolean {
+    return 'title' in item && 'pointId' in item;
+  }
+
+  getQuestionAnswers(item: ItemModelBase): Array<{ text: string; userId: string; createdAt?: string }> {
+    const rawItem = item as unknown as Record<string, unknown>;
+    const rawAnswers = rawItem['answers'];
+
+    if (!Array.isArray(rawAnswers)) {
+      return [];
+    }
+
+    return rawAnswers.map((answer) => {
+      const answerObj = typeof answer === 'object' && answer !== null ? answer as Record<string, unknown> : {};
+
+      return {
+        text: typeof answerObj['text'] === 'string' ? answerObj['text'] : '',
+        userId: this.extractNestedId(answerObj['userId']),
+        createdAt: typeof answerObj['createdAt'] === 'string' ? answerObj['createdAt'] : undefined
+      };
+    });
+  }
+
+  formatDate(value?: string): string {
+    if (!value) {
+      return '-';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleString();
   }
 
   private buildEditableValueMap(item: ItemModelBase): Record<string, string> {
@@ -271,11 +324,15 @@ export class DataTable {
     }
 
     if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return '0';
+      }
+
       const ids = value
         .map((item) => this.findNestedObjectId(item))
         .filter((id): id is string => typeof id === 'string' && id.length > 0);
 
-      return ids.length > 0 ? ids.join(', ') : '-';
+      return ids.length > 0 ? ids.join(', ') : String(value.length);
     }
 
     if (typeof value === 'object') {
@@ -318,6 +375,27 @@ export class DataTable {
 
   private getSelectedIdSet(): Set<string> {
     return new Set(this.selectedIds());
+  }
+
+  private extractNestedId(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      const objectValue = value as Record<string, unknown>;
+      const ownId = objectValue['_id'];
+
+      if (typeof ownId === 'string' && ownId.trim().length > 0) {
+        return ownId;
+      }
+
+      if (typeof ownId === 'number' && Number.isFinite(ownId)) {
+        return String(ownId);
+      }
+    }
+
+    return '';
   }
 
   private findNestedObjectId(value: unknown): string | null {

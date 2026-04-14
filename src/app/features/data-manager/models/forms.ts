@@ -37,3 +37,8 @@ export type QuestionFormValue = {
   description: string;
   pointId: string;
 };
+
+export type AnswerFormValue = {
+  text: string;
+  userId: string;
+};

@@ -42,6 +42,7 @@
         (deleteMany)="onDeleteMany($event)"
         (toggleEnabled)="onToggleEnabled($event)"
         (addItemClick)="onOpenAddItem()"
+        (addAnswerClick)="onOpenAddAnswer($event)"
         (inlineEditSubmit)="onInlineEditSubmit($event)"
       />
     </div>
@@ -89,5 +90,15 @@
     (close)="onCloseQuestionModal()"
     (submit)="onSubmitQuestion()"
     (fieldChange)="onQuestionFieldChange($event.key, $event.value)"
+  />
+
+  <app-answer-form-modal
+    [open]="showAnswerModal()"
+    [title]="'Add answer'"
+    [form]="answerForm()"
+    [saving]="savingAnswer()"
+    (close)="onCloseAnswerModal()"
+    (submit)="onSubmitAnswer()"
+    (fieldChange)="onAnswerFieldChange($event.key, $event.value)"
   />
 }

@@ -8,6 +8,7 @@ import { UserFormModal } from '../../components/create-forms/user-form-modal/use
 import { RouteFormModal } from '../../components/create-forms/route-form-modal/route-form-modal';
 import { PointFormModal } from '../../components/create-forms/point-form-modal/point-form-modal';
 import { QuestionFormModal } from '../../components/create-forms/question-form-modal/question-form-modal';
+import { AnswerFormModal } from '../../components/create-forms/answer-form-modal/answer-form-modal';
 import { DataService } from '../../../../core/services/data';
 import {
   CreatePointPayload,
@@ -28,7 +29,13 @@ import {
   UpdateUserPayload,
   UserItem
 } from '../../../../core/models/items';
-import { PointFormValue, QuestionFormValue, RouteFormValue, UserFormValue } from '../../models/forms';
+import {
+  AnswerFormValue,
+  PointFormValue,
+  QuestionFormValue,
+  RouteFormValue,
+  UserFormValue
+} from '../../models/forms';
 import {
   buildPointInlineUpdatePayload,
   buildRouteInlineUpdatePayload,
@@ -46,7 +53,8 @@ import {
     UserFormModal,
     RouteFormModal,
     PointFormModal,
-    QuestionFormModal
+    QuestionFormModal,
+    AnswerFormModal
   ],
   templateUrl: './data-manager-page.html',
   styleUrl: './data-manager-page.css'
@@ -83,6 +91,10 @@ export class DataManagerPage implements OnInit {
   showQuestionModal = signal(false);
   editingQuestionId = signal<string | null>(null);
   savingQuestion = signal(false);
+
+  showAnswerModal = signal(false);
+  answeringQuestionId = signal<string | null>(null);
+  savingAnswer = signal(false);
 
   searching = signal(false);
   inlineEditSavingItemId = signal<string | null>(null);
@@ -124,6 +136,11 @@ export class DataManagerPage implements OnInit {
     title: '',
     description: '',
     pointId: ''
+  });
+
+  answerForm = signal<AnswerFormValue>({
+    text: '',
+    userId: ''
   });
 
   currentTypeLabel = computed(() => {
@@ -188,6 +205,7 @@ export class DataManagerPage implements OnInit {
     this.closeRouteModal();
     this.closePointModal();
     this.closeQuestionModal();
+    this.closeAnswerModal();
     this.loadItems();
   }
 
@@ -705,6 +723,57 @@ export class DataManagerPage implements OnInit {
     });
   }
 
+  onOpenAddAnswer(questionId: string): void {
+    this.answeringQuestionId.set(questionId);
+    this.answerForm.set({
+      text: '',
+      userId: ''
+    });
+    this.showAnswerModal.set(true);
+  }
+
+  onAnswerFieldChange<K extends keyof AnswerFormValue>(key: K, value: AnswerFormValue[K]): void {
+    this.answerForm.update(current => ({
+      ...current,
+      [key]: value
+    }));
+  }
+
+  onCloseAnswerModal(): void {
+    if (this.savingAnswer()) {
+      return;
+    }
+
+    this.closeAnswerModal();
+  }
+
+  onSubmitAnswer(): void {
+    const questionId = this.answeringQuestionId();
+
+    if (!questionId) {
+      return;
+    }
+
+    const form = this.answerForm();
+
+    this.savingAnswer.set(true);
+
+    this.dataService.addAnswer(questionId, {
+      text: form.text.trim(),
+      userId: form.userId.trim()
+    }).subscribe({
+      next: () => {
+        this.savingAnswer.set(false);
+        this.closeAnswerModal();
+        this.loadItems();
+      },
+      error: (error) => {
+        console.error('Add answer error:', error);
+        this.savingAnswer.set(false);
+      }
+    });
+  }
+
   onDeleteItem(id: string): void {
     const confirmed = window.confirm('Are you sure you want to delete this item?');
     if (!confirmed) return;
@@ -855,6 +924,12 @@ export class DataManagerPage implements OnInit {
     this.showQuestionModal.set(false);
     this.editingQuestionId.set(null);
     this.savingQuestion.set(false);
+  }
+
+  private closeAnswerModal(): void {
+    this.showAnswerModal.set(false);
+    this.answeringQuestionId.set(null);
+    this.savingAnswer.set(false);
   }
 
   private loadItems(): void {

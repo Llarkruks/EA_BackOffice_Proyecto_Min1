@@ -1,0 +1,30 @@
+@if (open()) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal__header">
+        <h2>{{ title() }}</h2>
+        <button type="button" class="modal__close" [disabled]="saving()" (click)="onClose()">×</button>
+      </div>
+
+      <div class="modal__body">
+        <label class="form-field">
+          <span>Text</span>
+          <textarea [ngModel]="form().text" (ngModelChange)="onTextFieldChange('text', $event)"></textarea>
+        </label>
+
+        <label class="form-field">
+          <span>User ID</span>
+          <input type="text" [ngModel]="form().userId" (ngModelChange)="onTextFieldChange('userId', $event)" />
+        </label>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" [disabled]="saving()" (click)="onClose()">Cancel</button>
+
+        <button type="button" class="btn btn--primary" [disabled]="saving()" (click)="onSubmit()">
+          {{ saving() ? 'Saving...' : 'Add answer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
