@@ -31,3 +31,9 @@ export type PointFormValue = {
   routeId: string;
   index: number | null;
 };
+
+export type QuestionFormValue = {
+  title: string;
+  description: string;
+  pointId: string;
+};

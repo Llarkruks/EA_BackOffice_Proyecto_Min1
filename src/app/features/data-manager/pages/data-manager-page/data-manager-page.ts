@@ -7,9 +7,11 @@ import { SearchBar } from '../../components/search-bar/search-bar';
 import { UserFormModal } from '../../components/create-forms/user-form-modal/user-form-modal';
 import { RouteFormModal } from '../../components/create-forms/route-form-modal/route-form-modal';
 import { PointFormModal } from '../../components/create-forms/point-form-modal/point-form-modal';
+import { QuestionFormModal } from '../../components/create-forms/question-form-modal/question-form-modal';
 import { DataService } from '../../../../core/services/data';
 import {
   CreatePointPayload,
+  CreateQuestionPayload,
   CreateRoutePayload,
   CreateUserPayload,
   ITEM_TYPE_OPTIONS,
@@ -20,11 +22,13 @@ import {
   ItemTypeOption,
   ItemUiConfig,
   PointItem,
+  QuestionItem,
   RouteItem,
+  UpdateQuestionPayload,
   UpdateUserPayload,
   UserItem
 } from '../../../../core/models/items';
-import { PointFormValue, RouteFormValue, UserFormValue } from '../../models/forms';
+import { PointFormValue, QuestionFormValue, RouteFormValue, UserFormValue } from '../../models/forms';
 import {
   buildPointInlineUpdatePayload,
   buildRouteInlineUpdatePayload,
@@ -41,7 +45,8 @@ import {
     SearchBar,
     UserFormModal,
     RouteFormModal,
-    PointFormModal
+    PointFormModal,
+    QuestionFormModal
   ],
   templateUrl: './data-manager-page.html',
   styleUrl: './data-manager-page.css'
@@ -72,11 +77,12 @@ export class DataManagerPage implements OnInit {
   savingRoute = signal(false);
 
   showPointModal = signal(false);
-
   editingPointId = signal<string | null>(null);
-
   savingPoint = signal(false);
 
+  showQuestionModal = signal(false);
+  editingQuestionId = signal<string | null>(null);
+  savingQuestion = signal(false);
 
   searching = signal(false);
   inlineEditSavingItemId = signal<string | null>(null);
@@ -114,6 +120,12 @@ export class DataManagerPage implements OnInit {
     index: null
   });
 
+  questionForm = signal<QuestionFormValue>({
+    title: '',
+    description: '',
+    pointId: ''
+  });
+
   currentTypeLabel = computed(() => {
     return this.currentTypeConfig().label;
   });
@@ -135,26 +147,24 @@ export class DataManagerPage implements OnInit {
   });
 
   searchPlaceholder = computed(() => {
-    const firstColumn = this.currentPreviewColumns()[0];
-    return firstColumn ? `Search by ${firstColumn.label.toLowerCase()}...` : 'Search...';
+    const config = this.currentTypeConfig();
+    return config.search.placeholder || 'Search...';
   });
 
   isUsersType = computed(() => this.selectedType() === 'users');
   isRoutesType = computed(() => this.selectedType() === 'routes');
+  isPointsType = computed(() => this.selectedType() === 'points');
+  isQuestionsType = computed(() => this.selectedType() === 'questions');
 
   isEditingUser = computed(() => this.editingUserId() !== null);
   isEditingRoute = computed(() => this.editingRouteId() !== null);
+  isEditingPoint = computed(() => this.editingPointId() !== null);
+  isEditingQuestion = computed(() => this.editingQuestionId() !== null);
 
   modalTitle = computed(() => this.isEditingUser() ? 'Edit user' : 'Add user');
   routeModalTitle = computed(() => this.isEditingRoute() ? 'Edit route' : 'Add route');
-
-  isPointsType = computed(() => this.selectedType() === 'points');
-
-  isEditingPoint = computed(() => this.editingPointId() !== null);
-
-  pointModalTitle = computed(() =>
-    this.isEditingPoint() ? 'Edit point' : 'Add point'
-  );
+  pointModalTitle = computed(() => this.isEditingPoint() ? 'Edit point' : 'Add point');
+  questionModalTitle = computed(() => this.isEditingQuestion() ? 'Edit question' : 'Add question');
 
   canAddCurrentType = computed(() => {
     return true;
@@ -177,8 +187,8 @@ export class DataManagerPage implements OnInit {
     this.closeUserModal();
     this.closeRouteModal();
     this.closePointModal();
+    this.closeQuestionModal();
     this.loadItems();
-    
   }
 
   onPageChange(page: number): void {
@@ -216,7 +226,6 @@ export class DataManagerPage implements OnInit {
   }
 
   private searchAcrossAllPages(): void {
-    // Global search loads all pages once and filters client-side for a simple UX.
     const term = this.searchTerm().trim().toLowerCase();
     const searchKey = this.getSearchKey();
     const itemType = this.selectedType();
@@ -272,6 +281,11 @@ export class DataManagerPage implements OnInit {
 
     if (this.selectedType() === 'points') {
       this.onOpenAddPoint();
+      return;
+    }
+
+    if (this.selectedType() === 'questions') {
+      this.onOpenAddQuestion();
     }
   }
 
@@ -288,6 +302,11 @@ export class DataManagerPage implements OnInit {
 
     if (this.selectedType() === 'points') {
       this.onOpenEditPoint(id);
+      return;
+    }
+
+    if (this.selectedType() === 'questions') {
+      this.onOpenEditQuestion(id);
     }
   }
 
@@ -601,6 +620,91 @@ export class DataManagerPage implements OnInit {
     });
   }
 
+  onOpenAddQuestion(): void {
+    this.editingQuestionId.set(null);
+    this.questionForm.set({
+      title: '',
+      description: '',
+      pointId: ''
+    });
+    this.showQuestionModal.set(true);
+  }
+
+  onOpenEditQuestion(id: string): void {
+    const item = this.items().find((question): question is QuestionItem => question._id === id);
+
+    if (!item) return;
+
+    this.editingQuestionId.set(id);
+    this.questionForm.set({
+      title: item.title,
+      description: item.description ?? '',
+      pointId: item.pointId
+    });
+
+    this.showQuestionModal.set(true);
+  }
+
+  onQuestionFieldChange<K extends keyof QuestionFormValue>(key: K, value: QuestionFormValue[K]): void {
+    this.questionForm.update(current => ({
+      ...current,
+      [key]: value
+    }));
+  }
+
+  onCloseQuestionModal(): void {
+    if (this.savingQuestion()) {
+      return;
+    }
+
+    this.closeQuestionModal();
+  }
+
+  onSubmitQuestion(): void {
+    if (!this.isQuestionsType()) return;
+
+    const form = this.questionForm();
+
+    const payload: CreateQuestionPayload = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      pointId: form.pointId.trim()
+    };
+
+    this.savingQuestion.set(true);
+
+    if (this.isEditingQuestion()) {
+      const updatePayload: UpdateQuestionPayload = payload;
+
+      this.dataService.updateItem('questions', this.editingQuestionId()!, updatePayload).subscribe({
+        next: () => {
+          this.savingQuestion.set(false);
+          this.closeQuestionModal();
+          this.loadItems();
+        },
+        error: (error) => {
+          console.error('Update question error:', error);
+          this.savingQuestion.set(false);
+        }
+      });
+
+      return;
+    }
+
+    this.dataService.createItem('questions', payload).subscribe({
+      next: () => {
+        this.savingQuestion.set(false);
+        this.closeQuestionModal();
+        this.page.set(1);
+        this.loadItems();
+      },
+      error: (error) => {
+        console.error('Create question error:', error);
+        this.savingQuestion.set(false);
+      }
+    });
+  }
+
   onDeleteItem(id: string): void {
     const confirmed = window.confirm('Are you sure you want to delete this item?');
     if (!confirmed) return;
@@ -646,8 +750,6 @@ export class DataManagerPage implements OnInit {
 
     const type = this.selectedType();
 
-    // Keep update payload creation explicit per type to avoid hidden mapping side effects.
-
     if (type === 'users') {
       const payload = buildUserInlineUpdatePayload(changes);
       this.dataService.updateItem('users', itemId, payload).subscribe({
@@ -680,15 +782,44 @@ export class DataManagerPage implements OnInit {
       return;
     }
 
-    const payload = buildPointInlineUpdatePayload(changes);
-    this.dataService.updateItem('points', itemId, payload).subscribe({
+    if (type === 'points') {
+      const payload = buildPointInlineUpdatePayload(changes);
+      this.dataService.updateItem('points', itemId, payload).subscribe({
+        next: () => {
+          this.inlineEditSavingItemId.set(null);
+          this.inlineEditCompletedItemId.set(itemId);
+          this.loadItems();
+        },
+        error: (error) => {
+          console.error('Inline edit point error:', error);
+          this.inlineEditSavingItemId.set(null);
+        }
+      });
+      return;
+    }
+
+    const payload: UpdateQuestionPayload = {};
+
+    if (typeof changes['title'] === 'string') {
+      payload.title = changes['title'].trim();
+    }
+
+    if (typeof changes['description'] === 'string') {
+      payload.description = changes['description'].trim();
+    }
+
+    if (typeof changes['pointId'] === 'string') {
+      payload.pointId = changes['pointId'].trim();
+    }
+
+    this.dataService.updateItem('questions', itemId, payload).subscribe({
       next: () => {
         this.inlineEditSavingItemId.set(null);
         this.inlineEditCompletedItemId.set(itemId);
         this.loadItems();
       },
       error: (error) => {
-        console.error('Inline edit point error:', error);
+        console.error('Inline edit question error:', error);
         this.inlineEditSavingItemId.set(null);
       }
     });
@@ -718,6 +849,12 @@ export class DataManagerPage implements OnInit {
     this.showPointModal.set(false);
     this.editingPointId.set(null);
     this.savingPoint.set(false);
+  }
+
+  private closeQuestionModal(): void {
+    this.showQuestionModal.set(false);
+    this.editingQuestionId.set(null);
+    this.savingQuestion.set(false);
   }
 
   private loadItems(): void {
@@ -762,12 +899,17 @@ export class DataManagerPage implements OnInit {
   }
 
   private getSearchKey(): string {
-    const firstColumn = this.currentPreviewColumns()[0];
-    return firstColumn?.key ?? '';
+    return this.currentTypeConfig().search.key || '';
   }
 
   private getItemValueByKey(item: ItemModel, key: string): unknown {
-    return (item as unknown as Record<string, unknown>)[key];
+    const record = item as unknown as Record<string, unknown>;
+
+    if (key === 'answersCount' && Array.isArray(record['answers'])) {
+      return record['answers'].length;
+    }
+
+    return record[key];
   }
 
   private valueToSearchText(value: unknown): string {

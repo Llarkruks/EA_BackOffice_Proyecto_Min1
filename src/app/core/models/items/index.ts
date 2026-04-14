@@ -1,4 +1,5 @@
 import { CreatePointPayload, PointItem, UpdatePointPayload } from './Point';
+import { CreateQuestionPayload, QuestionItem, UpdateQuestionPayload } from './Question';
 import { CreateRoutePayload, RouteItem, UpdateRoutePayload } from './Route';
 import { CreateUserPayload, UpdateUserPayload, UserItem } from './User';
 
@@ -11,13 +12,17 @@ export type {
   UpdateRoutePayload,
   UserItem,
   CreateUserPayload,
-  UpdateUserPayload
+  UpdateUserPayload,
+  QuestionItem,
+  CreateQuestionPayload,
+  UpdateQuestionPayload
 };
 export type { RouteDifficulty } from './Route';
 
 export interface ItemModelBase {
   _id: string;
-  name: string;
+  name?: string;
+  title?: string;
   enabled?: boolean;
 }
 
@@ -25,6 +30,7 @@ export interface ItemModelByType {
   users: UserItem;
   routes: RouteItem;
   points: PointItem;
+  questions: QuestionItem;
 }
 
 export type ItemType = keyof ItemModelByType;
@@ -65,12 +71,14 @@ export interface CreatePayloadByType {
   users: CreateUserPayload;
   routes: CreateRoutePayload;
   points: CreatePointPayload;
+  questions: CreateQuestionPayload;
 }
 
 export interface UpdatePayloadByType {
   users: UpdateUserPayload;
   routes: UpdateRoutePayload;
   points: UpdatePointPayload;
+  questions: UpdateQuestionPayload;
 }
 
 export const ITEM_UI_CONFIG: Record<ItemType, ItemUiConfig> = {
@@ -134,6 +142,27 @@ export const ITEM_UI_CONFIG: Record<ItemType, ItemUiConfig> = {
       placeholder: 'Search...'
     },
     editableFields: ['name', 'description', 'latitude', 'longitude', 'image', 'routeId', 'index']
+  },
+  questions: {
+    label: 'Questions',
+    addButtonLabel: 'Add question',
+    previewColumns: [
+      { key: 'title', label: 'Title' },
+      { key: 'description', label: 'Description' },
+      { key: 'pointId', label: 'Point ID' },
+      { key: 'answersCount', label: 'Answers' }
+    ],
+    actions: {
+      edit: true,
+      delete: true,
+      toggleEnabled: false
+    },
+    search: {
+      enabled: true,
+      key: 'title',
+      placeholder: 'Search questions by title...'
+    },
+    editableFields: ['title', 'description', 'pointId']
   }
 };
 
@@ -154,7 +183,11 @@ export function normalizeItemByType<TType extends ItemType>(
     return normalizeRoute(value) as ItemModelByType[TType];
   }
 
-  return normalizePoint(value) as ItemModelByType[TType];
+  if (type === 'points') {
+    return normalizePoint(value) as ItemModelByType[TType];
+  }
+
+  return normalizeQuestion(value) as ItemModelByType[TType];
 }
 
 export function normalizeManyByType<TType extends ItemType>(
@@ -213,6 +246,45 @@ function normalizePoint(value: Record<string, unknown>): PointItem {
   };
 }
 
+function normalizeQuestion(value: Record<string, unknown>): QuestionItem {
+  const id = getItemId(value);
+  const answers = Array.isArray(value['answers']) ? value['answers'] : [];
+
+  return {
+    ...value,
+    _id: id,
+    title: getStringValue([value['title'], value['question']], id),
+    description: getStringValue([value['description']], ''),
+    pointId: getRelationId(value['pointId']),
+    answers: answers.map((answer) => normalizeQuestionAnswer(answer)),
+    createdAt: getOptionalStringValue(value['createdAt']),
+    updatedAt: getOptionalStringValue(value['updatedAt'])
+  };
+}
+
+function normalizeQuestionAnswer(value: unknown) {
+  const answer = typeof value === 'object' && value !== null ? value as Record<string, unknown> : {};
+
+  return {
+    text: getStringValue([answer['text']], ''),
+    userId: getRelationId(answer['userId']),
+    createdAt: getOptionalStringValue(answer['createdAt'])
+  };
+}
+
+function getRelationId(value: unknown): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const relation = value as Record<string, unknown>;
+    return getStringValue([relation['_id'], relation['id']], '');
+  }
+
+  return '';
+}
+
 function getItemId(value: Record<string, unknown>): string {
   return getStringValue([value['_id'], value['id']], '');
 }
@@ -225,6 +297,14 @@ function getStringArray(value: unknown): string[] {
   return value
     .map((item) => getStringValue([item], ''))
     .filter((item) => item.trim().length > 0);
+}
+
+function getOptionalStringValue(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value;
+  }
+
+  return undefined;
 }
 
 function getStringValue(values: unknown[], fallback: string): string {

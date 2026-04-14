@@ -46,6 +46,7 @@
       />
     </div>
   </section>
+
   <app-user-form-modal
     [open]="showUserModal()"
     [title]="modalTitle()"
@@ -77,5 +78,16 @@
     (close)="onClosePointModal()"
     (submit)="onSubmitPoint()"
     (fieldChange)="onPointFieldChange($event.key, $event.value)"
+  />
+
+  <app-question-form-modal
+    [open]="showQuestionModal()"
+    [title]="questionModalTitle()"
+    [form]="questionForm()"
+    [saving]="savingQuestion()"
+    [isEditing]="isEditingQuestion()"
+    (close)="onCloseQuestionModal()"
+    (submit)="onSubmitQuestion()"
+    (fieldChange)="onQuestionFieldChange($event.key, $event.value)"
   />
 }
